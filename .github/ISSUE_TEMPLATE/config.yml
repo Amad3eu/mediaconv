@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Reportar uma vulnerabilidade
+    url: https://github.com/Amad3eu/mediaconv/security/advisories/new
+    about: Envie vulnerabilidades de forma privada; não abra uma issue pública.
+

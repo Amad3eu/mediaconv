@@ -1,0 +1,65 @@
+name: Sugerir uma melhoria
+description: Proponha um novo perfil, opção ou melhoria de experiência.
+title: 'feat: '
+labels:
+  - enhancement
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explique primeiro o problema de uso. Isso ajuda a avaliar soluções que se
+        encaixem na arquitetura e permaneçam consistentes entre plataformas.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Verificações iniciais
+      options:
+        - label: Procurei por uma issue existente sobre a mesma proposta.
+          required: true
+        - label: Li o roadmap e a documentação disponível.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: Que necessidade não é atendida hoje e quem se beneficia?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solução proposta
+      description: Mostre, se possível, como seriam os comandos e a saída.
+      placeholder: mediaconv convert input.mp4 --to webm
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área principal
+      options:
+        - Novo perfil de conversão
+        - Interface e experiência do CLI
+        - Automação e uso em scripts
+        - Desempenho
+        - Documentação
+        - Distribuição e instalação
+        - Outra
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+
