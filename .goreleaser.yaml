@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: mediaconv
+
+builds:
+  - id: mediaconv
+    main: ./cmd/mediaconv
+    binary: mediaconv
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - >-
+        -s -w
+        -X github.com/Amad3eu/mediaconv/internal/buildinfo.Version={{ .Version }}
+        -X github.com/Amad3eu/mediaconv/internal/buildinfo.Commit={{ .Commit }}
+        -X github.com/Amad3eu/mediaconv/internal/buildinfo.Date={{ .Date }}
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - id: default
+    ids:
+      - mediaconv
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG.md
+      - THIRD_PARTY_NOTICES.md
+
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  algorithm: sha256
+
+sboms:
+  - id: archives
+    artifacts: archive
+
+signs:
+  - id: checksums
+    cmd: cosign
+    artifacts: checksum
+    certificate: '${artifact}.pem'
+    signature: '${artifact}.sig'
+    args:
+      - sign-blob
+      - --yes
+      - --output-certificate=${certificate}
+      - --output-signature=${signature}
+      - ${artifact}
+    output: true
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - '^chore:'
+      - '^ci:'
+      - '^docs:'
+      - '^test:'
+      - '^Merge pull request'
+      - '^Merge branch'
+
+release:
+  prerelease: auto
+  make_latest: true

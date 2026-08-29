@@ -1,0 +1,25 @@
+# Build and release output
+/bin/
+/dist/
+/mediaconv
+/mediaconv.exe
+/coverage.out
+
+# Local media and generated fixtures
+/*.mp4
+/*.webm
+/testdata/generated/
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local tools and environment
+/.tools/
+.env
+.env.*
+!.env.example

@@ -1,0 +1,72 @@
+name: Relatar um bug
+description: Informe um comportamento incorreto ou inesperado do mediaconv.
+title: 'bug: '
+labels:
+  - bug
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pelo relato. Não inclua vídeos privados, segredos ou dados pessoais.
+        Para vulnerabilidades, use o canal privado indicado em SECURITY.md.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Verificações iniciais
+      options:
+        - label: Procurei por uma issue existente sobre o mesmo problema.
+          required: true
+        - label: Testei com a release mais recente disponível.
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição
+      description: Explique o que ocorreu e qual foi o impacto.
+      placeholder: Ao executar..., o mediaconv...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Como reproduzir
+      description: Forneça comandos e passos mínimos, removendo caminhos sensíveis.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: Sistema operacional e arquitetura
+      placeholder: Ubuntu 26.04 amd64, macOS arm64 ou Windows 11 amd64
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnóstico
+      description: Cole a saída de mediaconv version, mediaconv doctor e ffmpeg -version.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs adicionais
+      description: Remova nomes de usuário, tokens, caminhos privados e conteúdo pessoal.
+      render: text
+
