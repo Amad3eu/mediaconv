@@ -74,5 +74,4 @@ jobs:
             dist/*.zip
             dist/*.sbom.json
             dist/*_checksums.txt
-            dist/*.sig
-            dist/*.pem
+            dist/*.bundle
