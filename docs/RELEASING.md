@@ -47,7 +47,7 @@ que ela tiver sido publicada.
 Depois que o workflow terminar:
 
 1. confira as notas e todos os alvos na página da release;
-2. baixe o arquivo da sua plataforma, o checksum, a assinatura e o certificado;
+2. baixe o arquivo da sua plataforma, o checksum e o bundle de assinatura;
 3. valide a identidade Sigstore e depois o checksum;
 4. valide o atestado de proveniência com o GitHub CLI;
 5. execute `mediaconv version` e uma conversão curta em pelo menos uma plataforma.
@@ -60,8 +60,7 @@ workflow='.github/workflows/release.yml@refs/tags/v0.1.0'
 certificate_identity="https://${repository}/${workflow}"
 
 cosign verify-blob \
-  --certificate mediaconv_0.1.0_checksums.txt.pem \
-  --signature mediaconv_0.1.0_checksums.txt.sig \
+  --bundle mediaconv_0.1.0_checksums.txt.bundle \
   --certificate-identity "${certificate_identity}" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   mediaconv_0.1.0_checksums.txt
