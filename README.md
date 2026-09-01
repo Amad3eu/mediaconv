@@ -6,16 +6,34 @@
 [![CodeQL](https://github.com/Amad3eu/mediaconv/actions/workflows/codeql.yml/badge.svg)](https://github.com/Amad3eu/mediaconv/actions/workflows/codeql.yml)
 [![Go](https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go)](go.mod)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Website](https://img.shields.io/badge/Website-GitHub%20Pages-222222?logo=githubpages)](https://amad3eu.github.io/mediaconv/)
 
-A safe, script-friendly command-line media converter powered by FFmpeg.
+MediaConv is a safe, script-friendly command-line media converter powered by
+FFmpeg.
 
-The first supported profile converts WebM video to broadly compatible MP4 using
-H.264 video and AAC audio. MediaConv validates the input, converts into a private
-staging directory, verifies the result, and only then publishes the output.
+It starts with one polished job: converting WebM videos to broadly compatible
+MP4 using H.264 video and AAC audio. MediaConv validates the input, converts into
+a private staging directory, verifies the result, and only then publishes the
+output.
 
 > [!NOTE]
 > MediaConv is in early development. Until v1.0, commands and flags may change
 > between minor releases.
+
+## Why MediaConv?
+
+FFmpeg is powerful, but the command line for a safe WebM to MP4 conversion is
+easy to get wrong. MediaConv packages that workflow into a small CLI with
+predictable defaults, clear diagnostics, structured output for automation, and a
+project layout ready for more converters over time.
+
+Use MediaConv when you want:
+
+- a short command instead of remembering FFmpeg flags;
+- output that is verified before it replaces or creates the final file;
+- readable errors for missing codecs, corrupt input, or output conflicts;
+- a CLI that works in scripts through JSON and typed exit codes;
+- a foundation that can grow into more media conversion profiles.
 
 ## Features
 
@@ -29,6 +47,8 @@ staging directory, verifies the result, and only then publishes the output.
 - Native release binaries for Linux, macOS, and Windows on AMD64 and ARM64.
 
 ## Quick start
+
+Install FFmpeg first, then install MediaConv from the latest release or with Go.
 
 ```bash
 # Verify FFmpeg and the required codecs.
@@ -45,6 +65,10 @@ mediaconv convert "recording.webm" \
   --output "exports/recording.mp4" \
   --overwrite
 ```
+
+Project site: <https://amad3eu.github.io/mediaconv/>
+
+Latest release: <https://github.com/Amad3eu/mediaconv/releases/latest>
 
 ## Requirements
 

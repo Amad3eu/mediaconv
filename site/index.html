@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="MediaConv is a safe command-line media converter powered by FFmpeg."
+    >
+    <title>MediaConv</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="brand" href="./" aria-label="MediaConv home">
+          <span class="brand-mark">MC</span>
+          <span>MediaConv</span>
+        </a>
+        <div class="nav-links">
+          <a href="https://github.com/Amad3eu/mediaconv/releases/latest">
+            Download
+          </a>
+          <a href="https://github.com/Amad3eu/mediaconv">GitHub</a>
+        </div>
+      </nav>
+
+      <section class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">FFmpeg-powered CLI</p>
+          <h1>Convert WebM to MP4 with safer defaults.</h1>
+          <p class="lede">
+            MediaConv wraps a careful FFmpeg workflow in a small terminal tool:
+            diagnose dependencies, convert locally, verify the MP4, and publish
+            only the finished result.
+          </p>
+          <div class="actions">
+            <a
+              class="button primary"
+              href="https://github.com/Amad3eu/mediaconv/releases/latest"
+            >
+              Download v0.1.0
+            </a>
+            <a class="button secondary" href="#quick-start">Quick start</a>
+          </div>
+        </div>
+
+        <section class="terminal-card" aria-label="Terminal example">
+          <div class="terminal-top">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <pre><code>$ mediaconv doctor
+OK  ffmpeg   available
+OK  ffprobe  available
+OK  libx264  available
+
+$ mediaconv convert "recording.webm"
+output: recording.mp4
+status: converted and verified</code></pre>
+        </section>
+      </section>
+    </header>
+
+    <main>
+      <section class="band" id="quick-start">
+        <div class="section-head">
+          <p class="eyebrow">Quick start</p>
+          <h2>Install once, convert from anywhere.</h2>
+        </div>
+        <div class="steps">
+          <article>
+            <span class="step-number">1</span>
+            <h3>Install FFmpeg</h3>
+            <p>MediaConv uses your local FFmpeg and ffprobe binaries.</p>
+            <pre><code>sudo apt install ffmpeg
+brew install ffmpeg
+winget install --id Gyan.FFmpeg --exact</code></pre>
+          </article>
+          <article>
+            <span class="step-number">2</span>
+            <h3>Install MediaConv</h3>
+            <p>Download a release archive or install with the Go toolchain.</p>
+            <pre><code>go install github.com/Amad3eu/mediaconv/cmd/mediaconv@latest</code></pre>
+          </article>
+          <article>
+            <span class="step-number">3</span>
+            <h3>Convert</h3>
+            <p>Run the conversion directly in your terminal or scripts.</p>
+            <pre><code>mediaconv doctor
+mediaconv convert "video.webm"</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="band muted">
+        <div class="section-head">
+          <p class="eyebrow">Why it exists</p>
+          <h2>Not just a shorter FFmpeg command.</h2>
+        </div>
+        <div class="features">
+          <article>
+            <h3>Verifies output</h3>
+            <p>
+              The final MP4 is probed before publication, so failed conversions
+              do not quietly become broken files.
+            </p>
+          </article>
+          <article>
+            <h3>Protects existing files</h3>
+            <p>
+              Outputs are not replaced unless you explicitly pass
+              <code>--overwrite</code>.
+            </p>
+          </article>
+          <article>
+            <h3>Works in automation</h3>
+            <p>
+              Human output, JSON mode, typed exit codes, and quiet script
+              behavior are part of the CLI contract.
+            </p>
+          </article>
+          <article>
+            <h3>Ready to grow</h3>
+            <p>
+              Profiles keep conversion decisions isolated so future formats can
+              share one CLI without turning the project into a pile of flags.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="section-head">
+          <p class="eyebrow">Current support</p>
+          <h2>One focused profile today.</h2>
+        </div>
+        <section class="support-table" aria-label="Supported formats">
+          <table>
+            <thead>
+              <tr>
+                <th>Input</th>
+                <th>Output</th>
+                <th>Video</th>
+                <th>Audio</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>WebM</td>
+                <td>MP4</td>
+                <td>H.264</td>
+                <td>AAC</td>
+                <td>Initial</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>MIT licensed.</span>
+      <a href="https://github.com/Amad3eu/mediaconv">View source</a>
+      <a href="https://github.com/Amad3eu/mediaconv/blob/main/README.md">
+        Full documentation
+      </a>
+    </footer>
+  </body>
+</html>
