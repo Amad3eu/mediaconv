@@ -109,6 +109,39 @@ Baixe o arquivo correspondente ao seu sistema em
 com o checksum publicado, extraia-o e coloque `mediaconv` em um diretório do
 `PATH`.
 
+### Homebrew
+
+```bash
+brew install --cask Amad3eu/tap/mediaconv
+```
+
+### Debian, Ubuntu, Fedora e Alpine
+
+Baixe o pacote Linux da sua plataforma em
+[GitHub Releases](https://github.com/Amad3eu/mediaconv/releases/latest) e instale
+com o gerenciador do sistema:
+
+```bash
+# Debian / Ubuntu
+sudo apt install ./mediaconv_0.1.1_linux_amd64.deb
+
+# Fedora / RHEL
+sudo dnf install ./mediaconv_0.1.1_linux_amd64.rpm
+
+# Alpine
+sudo apk add --allow-untrusted ./mediaconv_0.1.1_linux_amd64.apk
+```
+
+Os nomes acima usam `0.1.1` como exemplo. Use sempre a versão mais recente da
+página de release.
+
+### Windows com Scoop
+
+```powershell
+scoop bucket add amad3eu https://github.com/Amad3eu/scoop-bucket
+scoop install amad3eu/mediaconv
+```
+
 ### Com a toolchain Go
 
 ```bash

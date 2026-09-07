@@ -2,9 +2,13 @@
 
 As releases são publicadas pelo workflow `.github/workflows/release.yml` quando uma
 tag SemVer com prefixo `v` é enviada ao GitHub. O GoReleaser compila os binários,
-gera arquivos compactados, checksum SHA-256, SBOMs e uma assinatura keyless do
-arquivo de checksums. O GitHub também registra um atestado de proveniência para os
-artefatos publicados.
+gera arquivos compactados, pacotes Linux, checksum SHA-256, SBOMs e uma
+assinatura keyless do arquivo de checksums. O GitHub também registra um atestado
+de proveniência para os artefatos publicados.
+
+O mesmo workflow atualiza `Amad3eu/homebrew-tap` e `Amad3eu/scoop-bucket`. Para
+isso, o repositório precisa ter o secret `GH_PAT` com permissão de escrita nos
+três repositórios envolvidos.
 
 ## Antes de criar a tag
 

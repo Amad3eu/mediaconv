@@ -7,6 +7,16 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [0.1.1] - 2026-09-07
+
+### Adicionado
+
+- Pacotes Linux `.deb`, `.rpm` e `.apk` gerados pelo GoReleaser.
+- Publicação automática do cask no repositório `Amad3eu/homebrew-tap`.
+- Publicação automática do manifesto Scoop no repositório
+  `Amad3eu/scoop-bucket`.
+- Documentação de instalação via Homebrew, Scoop e pacotes Linux.
+
 ## [0.1.0] - 2026-08-29
 
 Primeira versão pública. O FFmpeg continua sendo uma dependência externa e precisa
@@ -28,5 +38,6 @@ ser instalado separadamente; use `mediaconv doctor` para conferir a instalação
 - Releases automatizadas com binários, checksums, SBOMs, assinatura keyless e
   atestados de proveniência.
 
-[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.1.0...HEAD
+[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Amad3eu/mediaconv/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Amad3eu/mediaconv/releases/tag/v0.1.0

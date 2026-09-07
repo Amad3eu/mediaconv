@@ -52,6 +52,58 @@ sboms:
   - id: archives
     artifacts: archive
 
+nfpms:
+  - id: linux-packages
+    ids:
+      - mediaconv
+    package_name: mediaconv
+    vendor: Amad3eu
+    homepage: https://amad3eu.github.io/mediaconv/
+    maintainer: Luiz Amadeu <luizfelipewarmling@gmail.com>
+    description: Safe command-line media converter powered by FFmpeg.
+    license: MIT
+    bindir: /usr/bin
+    formats:
+      - apk
+      - deb
+      - rpm
+    dependencies:
+      - ffmpeg
+
+homebrew_casks:
+  - name: mediaconv
+    ids:
+      - default
+    repository:
+      owner: Amad3eu
+      name: homebrew-tap
+      branch: main
+      token: '{{ .Env.GH_PAT }}'
+    directory: Casks
+    homepage: https://amad3eu.github.io/mediaconv/
+    description: Safe command-line media converter powered by FFmpeg.
+    license: MIT
+    binaries:
+      - mediaconv
+    dependencies:
+      - formula: ffmpeg
+
+scoops:
+  - name: mediaconv
+    ids:
+      - default
+    repository:
+      owner: Amad3eu
+      name: scoop-bucket
+      branch: main
+      token: '{{ .Env.GH_PAT }}'
+    directory: bucket
+    homepage: https://amad3eu.github.io/mediaconv/
+    description: Safe command-line media converter powered by FFmpeg.
+    license: MIT
+    depends:
+      - ffmpeg
+
 signs:
   - id: checksums
     cmd: cosign
