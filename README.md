@@ -101,6 +101,21 @@ package includes every codec.
 
 ## Install MediaConv
 
+### Install script
+
+Linux and macOS users can install the latest release without Go:
+
+```bash
+curl -fsSL https://amad3eu.github.io/mediaconv/install.sh | sh
+```
+
+To install into a custom directory:
+
+```bash
+curl -fsSL https://amad3eu.github.io/mediaconv/install.sh \
+  | MEDIACONV_INSTALL_DIR="$HOME/.local/bin" sh
+```
+
 ### Release archive
 
 Download the archive for your operating system from
@@ -122,16 +137,16 @@ install it with your system package manager:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./mediaconv_0.1.1_linux_amd64.deb
+sudo apt install ./mediaconv_0.1.2_linux_amd64.deb
 
 # Fedora / RHEL
-sudo dnf install ./mediaconv_0.1.1_linux_amd64.rpm
+sudo dnf install ./mediaconv_0.1.2_linux_amd64.rpm
 
 # Alpine
-sudo apk add --allow-untrusted ./mediaconv_0.1.1_linux_amd64.apk
+sudo apk add --allow-untrusted ./mediaconv_0.1.2_linux_amd64.apk
 ```
 
-The package names above use `0.1.1` as an example. Use the latest available
+The package names above use `0.1.2` as an example. Use the latest available
 version from the release page.
 
 ### Windows with Scoop

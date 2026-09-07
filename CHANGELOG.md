@@ -7,6 +7,13 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [0.1.2] - 2026-09-07
+
+### Adicionado
+
+- Script universal de instalação para Linux e macOS publicado no GitHub Pages.
+- Documentação do instalador no README, README em português e site do projeto.
+
 ## [0.1.1] - 2026-09-07
 
 ### Adicionado
@@ -38,6 +45,7 @@ ser instalado separadamente; use `mediaconv doctor` para conferir a instalação
 - Releases automatizadas com binários, checksums, SBOMs, assinatura keyless e
   atestados de proveniência.
 
-[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.1.1...HEAD
+[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Amad3eu/mediaconv/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Amad3eu/mediaconv/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Amad3eu/mediaconv/releases/tag/v0.1.0
