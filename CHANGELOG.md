@@ -7,6 +7,15 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [0.2.0] - 2026-09-08
+
+### Adicionado
+
+- Suporte do perfil `web` para converter entradas MOV, MKV, AVI e MP4 para MP4
+  H.264/AAC, além de WebM.
+- Teste de integração real para conversão MOV para MP4.
+- Matriz de formatos atualizada no README, README em português e site.
+
 ## [0.1.3] - 2026-09-07
 
 ### Adicionado
@@ -53,7 +62,8 @@ ser instalado separadamente; use `mediaconv doctor` para conferir a instalação
 - Releases automatizadas com binários, checksums, SBOMs, assinatura keyless e
   atestados de proveniência.
 
-[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.1.3...HEAD
+[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Amad3eu/mediaconv/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Amad3eu/mediaconv/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Amad3eu/mediaconv/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Amad3eu/mediaconv/compare/v0.1.0...v0.1.1

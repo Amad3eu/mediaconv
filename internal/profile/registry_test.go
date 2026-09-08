@@ -14,14 +14,13 @@ func TestRegistryFormats(t *testing.T) {
 	t.Parallel()
 
 	got := (Registry{}).Formats()
-	want := []SupportedFormat{{
-		Source:      "webm",
-		Target:      "mp4",
-		Profile:     "web",
-		VideoCodec:  "h264 (libx264)",
-		AudioCodec:  "aac",
-		Description: "Broadly compatible MP4 for browsers and media players",
-	}}
+	want := []SupportedFormat{
+		{Source: "webm", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
+		{Source: "mov", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
+		{Source: "mkv", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
+		{Source: "avi", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
+		{Source: "mp4", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
+	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Formats() = %#v, want %#v", got, want)
 	}
@@ -112,6 +111,39 @@ func TestRegistryPlanPadsOddDimensionsAndOmitsAudio(t *testing.T) {
 	}
 }
 
+func TestRegistryPlanSupportsCommonVideoContainers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		inputPath  string
+		formats    []string
+		wantSource string
+	}{
+		{name: "mov", inputPath: "clip.mov", formats: []string{"mov", "mp4", "m4a"}, wantSource: "mov"},
+		{name: "mkv", inputPath: "clip.mkv", formats: []string{"matroska"}, wantSource: "mkv"},
+		{name: "avi", inputPath: "clip.avi", formats: []string{"avi"}, wantSource: "avi"},
+		{name: "mp4", inputPath: "clip.mp4", formats: []string{"mov", "mp4", "m4a"}, wantSource: "mp4"},
+		{name: "extensionless fallback", inputPath: "clip", formats: []string{"matroska"}, wantSource: "mkv"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			info := supportedInputInfo()
+			info.FormatNames = test.formats
+
+			got, err := (Registry{}).Plan(test.inputPath, "clip-output.mp4", "mp4", "web", info, supportedCapabilities())
+			if err != nil {
+				t.Fatalf("Plan() error = %v", err)
+			}
+			if got.SourceFormat != test.wantSource {
+				t.Errorf("SourceFormat = %q, want %q", got.SourceFormat, test.wantSource)
+			}
+		})
+	}
+}
+
 func TestRegistryPlanReportsLossAndSelectionWarnings(t *testing.T) {
 	t.Parallel()
 
@@ -138,7 +170,7 @@ func TestRegistryPlanReportsLossAndSelectionWarnings(t *testing.T) {
 		"Chapters are not included in the MP4 output.",
 		"The source has an alpha channel; transparency will be lost.",
 		"The source appears to use HDR transfer characteristics; the web preset may not preserve HDR correctly.",
-		"The input is detected as WebM even though its file extension is not .webm.",
+		"The input is detected as WEBM even though its file extension is .bin.",
 	}
 	if !reflect.DeepEqual(got.Warnings, wantWarnings) {
 		t.Errorf("Warnings mismatch\n got: %q\nwant: %q", got.Warnings, wantWarnings)
@@ -172,8 +204,8 @@ func TestRegistryPlanRejectsUnsupportedInputsAndMissingCapabilities(t *testing.T
 		{
 			name:   "container",
 			target: "mp4", preset: "web",
-			info: media.Info{FormatNames: []string{"matroska"}, Streams: supportedInputInfo().Streams},
-			caps: supportedCapabilities(), wantErr: ErrUnsupportedInput, want: "instead of WebM",
+			info: media.Info{FormatNames: []string{"ogg"}, Streams: supportedInputInfo().Streams},
+			caps: supportedCapabilities(), wantErr: ErrUnsupportedInput, want: "instead of webm, mov, mkv, avi, or mp4",
 		},
 		{
 			name:   "video stream",

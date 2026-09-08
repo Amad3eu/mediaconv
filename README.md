@@ -11,10 +11,10 @@
 MediaConv is a safe, script-friendly command-line media converter powered by
 FFmpeg.
 
-It starts with one polished job: converting WebM videos to broadly compatible
-MP4 using H.264 video and AAC audio. MediaConv validates the input, converts into
-a private staging directory, verifies the result, and only then publishes the
-output.
+It starts with one polished profile: converting common video containers to
+broadly compatible MP4 using H.264 video and AAC audio. MediaConv validates the
+input, converts into a private staging directory, verifies the result, and only
+then publishes the output.
 
 > [!NOTE]
 > MediaConv is in early development. Until v1.0, commands and flags may change
@@ -22,7 +22,7 @@ output.
 
 ## Why MediaConv?
 
-FFmpeg is powerful, but the command line for a safe WebM to MP4 conversion is
+FFmpeg is powerful, but the command line for a safe, compatible MP4 conversion is
 easy to get wrong. MediaConv packages that workflow into a small CLI with
 predictable defaults, clear diagnostics, structured output for automation, and a
 project layout ready for more converters over time.
@@ -37,7 +37,7 @@ Use MediaConv when you want:
 
 ## Features
 
-- Local WebM to MP4 conversion with a compatibility-focused profile.
+- Local video to MP4 conversion with a compatibility-focused profile.
 - Interactive progress when stderr is a terminal; clean output in scripts.
 - No overwrite unless `--overwrite` is explicitly provided.
 - Temporary output cleanup after failure or interruption.
@@ -59,6 +59,9 @@ mediaconv inspect "recording.webm"
 
 # Create recording.mp4 beside the input.
 mediaconv convert "recording.webm"
+
+# Convert a camera export to MP4.
+mediaconv convert "camera.mov" --output "camera.mp4"
 
 # Select an output and explicitly allow replacement.
 mediaconv convert "recording.webm" \
@@ -150,16 +153,16 @@ install it with your system package manager:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./mediaconv_0.1.3_linux_amd64.deb
+sudo apt install ./mediaconv_0.2.0_linux_amd64.deb
 
 # Fedora / RHEL
-sudo dnf install ./mediaconv_0.1.3_linux_amd64.rpm
+sudo dnf install ./mediaconv_0.2.0_linux_amd64.rpm
 
 # Alpine
-sudo apk add --allow-untrusted ./mediaconv_0.1.3_linux_amd64.apk
+sudo apk add --allow-untrusted ./mediaconv_0.2.0_linux_amd64.apk
 ```
 
-The package names above use `0.1.3` as an example. Use the latest available
+The package names above use `0.2.0` as an example. Use the latest available
 version from the release page.
 
 ### Windows with Scoop
@@ -222,7 +225,11 @@ stderr is not a terminal.
 
 | Input | Output | Profile | Video | Audio | Status |
 | --- | --- | --- | --- | --- | --- |
-| WebM | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Initial |
+| WebM | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
+| MOV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
+| MKV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
+| AVI | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
+| MP4 | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
 
 The `web` profile converts the first video stream and the first optional audio
 stream. It produces `yuv420p`, preserves compatible metadata, drops chapters and
@@ -246,10 +253,10 @@ filesystems, but may not be available on some removable or network filesystems.
 
 ## Roadmap
 
-- Additional profiles such as MP4 to WebM and MOV/MKV to MP4.
+- Additional profiles such as MP4 to WebM and GIF previews.
 - Audio extraction to MP3, AAC, and WAV.
 - Batch conversion with conservative concurrency controls.
-- Package-manager distribution after the release interface stabilizes.
+- Native package repositories for `apt`, `dnf`, and `apk`.
 - Optional hardware acceleration after capability-specific tests are available.
 
 Dynamic plugins and bundled FFmpeg binaries are intentionally outside the initial

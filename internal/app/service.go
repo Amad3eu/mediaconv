@@ -81,7 +81,7 @@ func (s *Service) Convert(ctx context.Context, request ConvertRequest, sink func
 		return ConvertResult{}, failure.New(
 			failure.Input,
 			"The input could not be read as a supported media file.",
-			"Check that the path points to a valid local WebM file.",
+			"Check that the path points to a valid local video file.",
 			err,
 		)
 	}
@@ -262,7 +262,7 @@ func resolveInput(input string) (string, os.FileInfo, error) {
 		return "", nil, failure.New(failure.Input, "The input must be a regular local file.", "Directories, devices, pipes, and URLs are not supported.", nil)
 	}
 	if info.Size() == 0 {
-		return "", nil, failure.New(failure.Input, "The input file is empty.", "Choose a non-empty WebM file.", nil)
+		return "", nil, failure.New(failure.Input, "The input file is empty.", "Choose a non-empty video file.", nil)
 	}
 	file, err := os.Open(path)
 	if err != nil {
@@ -348,7 +348,7 @@ func planFailure(err error) error {
 	case errors.Is(err, profile.ErrUnsupportedTarget), errors.Is(err, profile.ErrUnsupportedPreset):
 		return failure.New(failure.Usage, err.Error(), "Run 'mediaconv formats' to list supported conversions and profiles.", err)
 	default:
-		return failure.New(failure.Input, "The input is not supported by the selected conversion profile.", "The initial profile accepts local WebM files containing at least one video stream.", err)
+		return failure.New(failure.Input, "The input is not supported by the selected conversion profile.", "The web profile accepts local WebM, MOV, MKV, AVI, or MP4 files containing at least one video stream.", err)
 	}
 }
 

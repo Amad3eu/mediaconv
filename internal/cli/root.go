@@ -43,7 +43,7 @@ func newRootCommand(opts *options, stdin io.Reader, stdout, stderr io.Writer) *c
 	root := &cobra.Command{
 		Use:           "mediaconv",
 		Short:         "Convert media files safely with FFmpeg",
-		Long:          "MediaConv is a script-friendly media conversion CLI. Its first profile converts WebM video to broadly compatible MP4.",
+		Long:          "MediaConv is a script-friendly media conversion CLI. Its web profile converts common video containers to broadly compatible MP4.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		Version:       info.Version,
@@ -87,8 +87,8 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 		Args:  exactArgs(1),
 		Example: strings.TrimSpace(`
   mediaconv convert recording.webm
-  mediaconv convert recording.webm --output recording.mp4
-  mediaconv convert recording.webm --to mp4 --preset web --overwrite`),
+  mediaconv convert clip.mov --output clip.mp4
+  mediaconv convert archive.mkv --to mp4 --preset web --overwrite`),
 		RunE: func(command *cobra.Command, args []string) error {
 			service := app.New(app.Config{FFmpegPath: opts.ffmpegPath, FFprobePath: opts.ffprobePath})
 			progress := newProgressWriter(stderr, !noProgress && !opts.json)

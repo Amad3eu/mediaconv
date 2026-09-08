@@ -117,7 +117,14 @@ func TestExecuteFormats(t *testing.T) {
 		if code != 0 || stderr != "" {
 			t.Fatalf("Execute(formats) = code %d, stderr %q", code, stderr)
 		}
-		want := "WEBM -> MP4  profile=web  video=h264 (libx264)  audio=aac\n"
+		want := strings.Join([]string{
+			"WEBM -> MP4  profile=web  video=h264 (libx264)  audio=aac",
+			"MOV -> MP4  profile=web  video=h264 (libx264)  audio=aac",
+			"MKV -> MP4  profile=web  video=h264 (libx264)  audio=aac",
+			"AVI -> MP4  profile=web  video=h264 (libx264)  audio=aac",
+			"MP4 -> MP4  profile=web  video=h264 (libx264)  audio=aac",
+			"",
+		}, "\n")
 		if stdout != want {
 			t.Errorf("formats output = %q, want %q", stdout, want)
 		}
@@ -133,7 +140,7 @@ func TestExecuteFormats(t *testing.T) {
 			Formats []profile.SupportedFormat `json:"formats"`
 		}
 		decodeJSON(t, stdout, &envelope)
-		if !envelope.OK || len(envelope.Formats) != 1 {
+		if !envelope.OK || len(envelope.Formats) != 5 {
 			t.Fatalf("formats JSON = %#v", envelope)
 		}
 		format := envelope.Formats[0]

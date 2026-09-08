@@ -75,6 +75,31 @@ func TestConvertWebMWithoutAudio(t *testing.T) {
 	assertNoStagingDirectories(t, directory)
 }
 
+func TestConvertMOVToMP4(t *testing.T) {
+	requireFFmpeg(t)
+	directory := t.TempDir()
+	input := filepath.Join(directory, "camera.mov")
+	output := filepath.Join(directory, "camera.mp4")
+	generateMOV(t, input)
+
+	result, err := app.New(app.Config{}).Convert(context.Background(), app.ConvertRequest{
+		InputPath:  input,
+		OutputPath: output,
+		Target:     "mp4",
+		Preset:     "web",
+	}, nil)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+	if result.Plan.SourceFormat != "mov" {
+		t.Fatalf("SourceFormat = %q, want mov", result.Plan.SourceFormat)
+	}
+	if result.OutputInfo.VideoStreams()[0].CodecName != "h264" {
+		t.Fatalf("video codec = %q, want h264", result.OutputInfo.VideoStreams()[0].CodecName)
+	}
+	assertNoStagingDirectories(t, directory)
+}
+
 func TestTruncatedWebMIsNotPublished(t *testing.T) {
 	requireFFmpeg(t)
 	directory := t.TempDir()
@@ -155,6 +180,22 @@ func generateWebM(t *testing.T, output string, withAudio bool, duration string) 
 	command := exec.Command("ffmpeg", args...)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("generate WebM: %v\n%s", err, output)
+	}
+}
+
+func generateMOV(t *testing.T, output string) {
+	t.Helper()
+	args := []string{
+		"-hide_banner", "-loglevel", "error", "-nostdin", "-y",
+		"-f", "lavfi", "-i", "testsrc2=size=160x90:rate=24",
+		"-t", "0.5",
+		"-c:v", "mpeg4",
+		"-q:v", "5",
+		output,
+	}
+	command := exec.Command("ffmpeg", args...)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("generate MOV: %v\n%s", err, output)
 	}
 }
 

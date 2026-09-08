@@ -30,14 +30,19 @@ type SupportedFormat struct {
 }
 
 func (Registry) Formats() []SupportedFormat {
-	return []SupportedFormat{{
-		Source:      "webm",
-		Target:      "mp4",
-		Profile:     "web",
-		VideoCodec:  "h264 (libx264)",
-		AudioCodec:  "aac",
-		Description: "Broadly compatible MP4 for browsers and media players",
-	}}
+	sources := []string{"webm", "mov", "mkv", "avi", "mp4"}
+	formats := make([]SupportedFormat, 0, len(sources))
+	for _, source := range sources {
+		formats = append(formats, SupportedFormat{
+			Source:      source,
+			Target:      "mp4",
+			Profile:     "web",
+			VideoCodec:  "h264 (libx264)",
+			AudioCodec:  "aac",
+			Description: "Broadly compatible MP4 for browsers and media players",
+		})
+	}
+	return formats
 }
 
 func (Registry) Plan(inputPath, outputPath, target, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
@@ -49,8 +54,13 @@ func (Registry) Plan(inputPath, outputPath, target, preset string, info media.In
 	if preset != "web" {
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
 	}
-	if !hasFormat(info.FormatNames, "webm") {
-		return media.Plan{}, fmt.Errorf("%w: ffprobe detected %q instead of WebM", ErrUnsupportedInput, strings.Join(info.FormatNames, ","))
+	sourceFormat, ok := supportedVideoSource(inputPath, info.FormatNames)
+	if !ok {
+		return media.Plan{}, fmt.Errorf(
+			"%w: ffprobe detected %q instead of webm, mov, mkv, avi, or mp4",
+			ErrUnsupportedInput,
+			strings.Join(info.FormatNames, ","),
+		)
 	}
 
 	videos := info.VideoStreams()
@@ -94,14 +104,14 @@ func (Registry) Plan(inputPath, outputPath, target, preset string, info media.In
 	if isHDR(video.ColorTransfer) {
 		warnings = append(warnings, "The source appears to use HDR transfer characteristics; the web preset may not preserve HDR correctly.")
 	}
-	if strings.ToLower(filepath.Ext(inputPath)) != ".webm" {
-		warnings = append(warnings, "The input is detected as WebM even though its file extension is not .webm.")
+	if inputExtensionDoesNotMatchSource(inputPath, sourceFormat) {
+		warnings = append(warnings, fmt.Sprintf("The input is detected as %s even though its file extension is %s.", strings.ToUpper(sourceFormat), strings.ToLower(filepath.Ext(inputPath))))
 	}
 
 	plan := media.Plan{
 		InputPath:    inputPath,
 		OutputPath:   outputPath,
-		SourceFormat: "webm",
+		SourceFormat: sourceFormat,
 		TargetFormat: "mp4",
 		Profile:      "web",
 		VideoMap:     "0:v:0",
@@ -168,6 +178,63 @@ func hasFormat(formats []string, target string) bool {
 		}
 	}
 	return false
+}
+
+func supportedVideoSource(inputPath string, formats []string) (string, bool) {
+	switch strings.TrimPrefix(strings.ToLower(filepath.Ext(inputPath)), ".") {
+	case "webm":
+		if hasFormat(formats, "webm") {
+			return "webm", true
+		}
+	case "mov", "qt":
+		if hasFormat(formats, "mov") || hasFormat(formats, "mp4") {
+			return "mov", true
+		}
+	case "mkv", "mka", "mks":
+		if hasFormat(formats, "matroska") {
+			return "mkv", true
+		}
+	case "avi":
+		if hasFormat(formats, "avi") {
+			return "avi", true
+		}
+	case "mp4", "m4v":
+		if hasFormat(formats, "mp4") || hasFormat(formats, "mov") {
+			return "mp4", true
+		}
+	}
+
+	switch {
+	case hasFormat(formats, "webm"):
+		return "webm", true
+	case hasFormat(formats, "avi"):
+		return "avi", true
+	case hasFormat(formats, "matroska"):
+		return "mkv", true
+	case hasFormat(formats, "mp4"):
+		return "mp4", true
+	case hasFormat(formats, "mov"):
+		return "mov", true
+	default:
+		return "", false
+	}
+}
+
+func inputExtensionDoesNotMatchSource(inputPath, source string) bool {
+	extension := strings.TrimPrefix(strings.ToLower(filepath.Ext(inputPath)), ".")
+	if extension == "" {
+		return true
+	}
+	switch source {
+	case "mkv":
+		return extension != "mkv" && extension != "mka" && extension != "mks"
+	case "mov":
+		return extension != "mov" && extension != "qt"
+	case "mp4":
+		return extension != "mp4" && extension != "m4v"
+	default:
+		return extension != source
+	}
 }
 
 func isHDR(transfer string) bool {

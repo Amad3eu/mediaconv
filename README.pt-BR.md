@@ -11,10 +11,10 @@
 MediaConv é um conversor de mídia por linha de comando, seguro e amigável a
 automações, baseado no FFmpeg.
 
-Ele começa com uma tarefa bem resolvida: converter vídeos WebM em MP4 amplamente
-compatível, usando vídeo H.264 e áudio AAC. O MediaConv valida a entrada,
-converte em uma área temporária privada, verifica o resultado e somente então
-publica a saída.
+Ele começa com um perfil bem resolvido: converter containers de vídeo comuns em
+MP4 amplamente compatível, usando vídeo H.264 e áudio AAC. O MediaConv valida a
+entrada, converte em uma área temporária privada, verifica o resultado e somente
+então publica a saída.
 
 > [!NOTE]
 > O MediaConv está em desenvolvimento inicial. Até a v1.0, comandos e opções
@@ -22,8 +22,8 @@ publica a saída.
 
 ## Por que usar o MediaConv?
 
-O FFmpeg é poderoso, mas a linha de comando para uma conversão WebM para MP4
-segura é fácil de errar. O MediaConv empacota esse fluxo em um CLI pequeno, com
+O FFmpeg é poderoso, mas a linha de comando para uma conversão MP4 segura e
+compatível é fácil de errar. O MediaConv empacota esse fluxo em um CLI pequeno, com
 padrões previsíveis, diagnóstico claro, saída estruturada para automações e uma
 arquitetura pronta para receber mais conversores no futuro.
 
@@ -37,7 +37,7 @@ Use o MediaConv quando você quiser:
 
 ## Recursos
 
-- Conversão local de WebM para MP4 com foco em compatibilidade.
+- Conversão local de vídeos para MP4 com foco em compatibilidade.
 - Progresso interativo no terminal e saída limpa para scripts.
 - Nenhuma sobrescrita sem a opção explícita `--overwrite`.
 - Limpeza de arquivos temporários após falha ou interrupção.
@@ -60,6 +60,9 @@ mediaconv inspect "gravacao.webm"
 
 # Crie gravacao.mp4 ao lado da entrada.
 mediaconv convert "gravacao.webm"
+
+# Converta uma exportação de câmera para MP4.
+mediaconv convert "camera.mov" --output "camera.mp4"
 
 # Escolha a saída e permita explicitamente sua substituição.
 mediaconv convert "gravacao.webm" \
@@ -151,16 +154,16 @@ com o gerenciador do sistema:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./mediaconv_0.1.3_linux_amd64.deb
+sudo apt install ./mediaconv_0.2.0_linux_amd64.deb
 
 # Fedora / RHEL
-sudo dnf install ./mediaconv_0.1.3_linux_amd64.rpm
+sudo dnf install ./mediaconv_0.2.0_linux_amd64.rpm
 
 # Alpine
-sudo apk add --allow-untrusted ./mediaconv_0.1.3_linux_amd64.apk
+sudo apk add --allow-untrusted ./mediaconv_0.2.0_linux_amd64.apk
 ```
 
-Os nomes acima usam `0.1.3` como exemplo. Use sempre a versão mais recente da
+Os nomes acima usam `0.2.0` como exemplo. Use sempre a versão mais recente da
 página de release.
 
 ### Windows com Scoop
@@ -223,7 +226,11 @@ automaticamente quando stderr não é um terminal.
 
 | Entrada | Saída | Perfil | Vídeo | Áudio | Situação |
 | --- | --- | --- | --- | --- | --- |
-| WebM | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Inicial |
+| WebM | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
+| MOV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
+| MKV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
+| AVI | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
+| MP4 | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
 
 O perfil `web` converte o primeiro vídeo e o primeiro áudio opcional. Ele gera
 `yuv420p`, preserva metadados compatíveis, descarta capítulos e legendas, ajusta
@@ -248,10 +255,10 @@ discos removíveis ou compartilhamentos de rede.
 
 ## Próximos passos
 
-- Perfis adicionais, como MP4 para WebM e MOV/MKV para MP4.
+- Perfis adicionais, como MP4 para WebM e prévias em GIF.
 - Extração de áudio para MP3, AAC e WAV.
 - Conversão em lote com controle conservador de concorrência.
-- Distribuição por gerenciadores de pacotes depois que a interface estabilizar.
+- Repositórios nativos para `apt`, `dnf` e `apk`.
 - Aceleração por hardware após a criação de testes específicos por capacidade.
 
 Plugins dinâmicos e binários do FFmpeg incluídos estão propositalmente fora do
