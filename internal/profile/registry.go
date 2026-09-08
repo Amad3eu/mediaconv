@@ -30,8 +30,8 @@ type SupportedFormat struct {
 }
 
 func (Registry) Formats() []SupportedFormat {
-	videoSources := []string{"webm", "mov", "mkv", "avi", "mp4"}
-	audioSources := []string{"wav", "flac", "m4a", "aac", "ogg", "mp3"}
+	videoSources := []string{"webm", "mov", "qt", "mkv", "avi", "mp4", "m4v"}
+	audioSources := []string{"wav", "flac", "m4a", "m4b", "aac", "ogg", "oga", "opus", "mp3"}
 	formats := make([]SupportedFormat, 0, len(videoSources)+len(audioSources))
 	for _, source := range videoSources {
 		formats = append(formats, SupportedFormat{
@@ -353,7 +353,7 @@ func supportedAudioSource(inputPath string, formats []string) (string, bool) {
 		if hasFormat(formats, "flac") {
 			return "flac", true
 		}
-	case "m4a":
+	case "m4a", "m4b":
 		if hasFormat(formats, "mov") || hasFormat(formats, "mp4") {
 			return "m4a", true
 		}

@@ -70,6 +70,9 @@ mediaconv convert "camera.mov" --output "camera.mp4"
 # Convert audio to MP3.
 mediaconv convert "song.wav" --to mp3
 
+# Convert a whole directory.
+mediaconv batch "./recordings" --to mp4 --output-dir "./converted"
+
 # Select an output and explicitly allow replacement.
 mediaconv convert "recording.webm" \
   --output "exports/recording.mp4" \
@@ -201,6 +204,7 @@ Development requires Go 1.26 or newer.
 
 ```text
 mediaconv convert INPUT [--to mp4|mp3] [-o OUTPUT] [--preset web|music] [--overwrite]
+mediaconv batch DIRECTORY [--to mp4|mp3] [-o OUTPUT_DIR] [--recursive] [--overwrite]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -233,15 +237,15 @@ stderr is not a terminal.
 | Input | Output | Profile | Video | Audio | Status |
 | --- | --- | --- | --- | --- | --- |
 | WebM | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
-| MOV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
+| MOV / QT | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
 | MKV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
 | AVI | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
-| MP4 | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
+| MP4 / M4V | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
 | WAV | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
 | FLAC | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
-| M4A | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
+| M4A / M4B | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
 | AAC | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
-| OGG | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
+| OGG / OGA / OPUS | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
 | MP3 | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
 
 The `web` profile converts the first video stream and the first optional audio
@@ -272,7 +276,7 @@ filesystems, but may not be available on some removable or network filesystems.
 
 - Additional profiles such as MP4 to WebM and GIF previews.
 - Audio output profiles such as AAC and WAV.
-- Batch conversion with conservative concurrency controls.
+- Batch concurrency controls for larger folders.
 - Native package repositories for `apt`, `dnf`, and `apk`.
 - Optional hardware acceleration after capability-specific tests are available.
 

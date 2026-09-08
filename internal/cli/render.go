@@ -35,6 +35,56 @@ func writeConvertResult(writer io.Writer, result app.ConvertResult, asJSON bool)
 	return nil
 }
 
+func writeBatchResult(writer io.Writer, result app.BatchResult, asJSON bool) error {
+	if asJSON {
+		return writeJSON(writer, map[string]any{
+			"ok":              result.Failed == 0,
+			"input_dir":       result.InputDir,
+			"output_dir":      result.OutputDir,
+			"target":          result.Target,
+			"preset":          result.Preset,
+			"recursive":       result.Recursive,
+			"total":           result.Total,
+			"converted":       result.Converted,
+			"failed":          result.Failed,
+			"elapsed_seconds": seconds(result.Elapsed),
+			"items":           result.Items,
+		})
+	}
+
+	if _, err := fmt.Fprintf(writer, "Batch: %d file(s), %d converted, %d failed\n", result.Total, result.Converted, result.Failed); err != nil {
+		return err
+	}
+	for _, item := range result.Items {
+		status := "OK"
+		if !item.OK {
+			status = "FAIL"
+		}
+		if _, err := fmt.Fprintf(writer, "%-4s %s", status, item.InputPath); err != nil {
+			return err
+		}
+		if item.OutputPath != "" {
+			if _, err := fmt.Fprintf(writer, " -> %s", item.OutputPath); err != nil {
+				return err
+			}
+		}
+		if item.Error != "" {
+			if _, err := fmt.Fprintf(writer, " (%s)", item.Error); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprintln(writer); err != nil {
+			return err
+		}
+		for _, warning := range item.Warnings {
+			if _, err := fmt.Fprintf(writer, "     Warning: %s\n", warning); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func writeMediaInfo(writer io.Writer, info media.Info, asJSON bool) error {
 	if asJSON {
 		return writeJSON(writer, map[string]any{"ok": true, "media": mediaInfoView(info)})

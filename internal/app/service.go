@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -45,6 +46,36 @@ type ConvertResult struct {
 	Plan       media.Plan    `json:"plan"`
 	OutputInfo media.Info    `json:"output"`
 	Warnings   []string      `json:"warnings,omitempty"`
+}
+
+type BatchRequest struct {
+	InputDir  string
+	OutputDir string
+	Target    string
+	Preset    string
+	Overwrite bool
+	Recursive bool
+}
+
+type BatchItem struct {
+	InputPath  string   `json:"input_path"`
+	OutputPath string   `json:"output_path,omitempty"`
+	OK         bool     `json:"ok"`
+	Error      string   `json:"error,omitempty"`
+	Warnings   []string `json:"warnings,omitempty"`
+}
+
+type BatchResult struct {
+	InputDir  string        `json:"input_dir"`
+	OutputDir string        `json:"output_dir"`
+	Target    string        `json:"target"`
+	Preset    string        `json:"preset,omitempty"`
+	Recursive bool          `json:"recursive"`
+	Total     int           `json:"total"`
+	Converted int           `json:"converted"`
+	Failed    int           `json:"failed"`
+	Items     []BatchItem   `json:"items"`
+	Elapsed   time.Duration `json:"-"`
 }
 
 func (s *Service) Convert(ctx context.Context, request ConvertRequest, sink func(media.Progress)) (_ ConvertResult, returnErr error) {
@@ -150,6 +181,93 @@ func (s *Service) Convert(ctx context.Context, request ConvertRequest, sink func
 	}, nil
 }
 
+func (s *Service) BatchConvert(ctx context.Context, request BatchRequest) (BatchResult, error) {
+	started := time.Now()
+	inputDir, err := resolveInputDir(request.InputDir)
+	if err != nil {
+		return BatchResult{}, err
+	}
+	target, err := normalizeTarget(request.Target)
+	if err != nil {
+		return BatchResult{}, err
+	}
+	outputDir, err := resolveBatchOutputDir(inputDir, request.OutputDir)
+	if err != nil {
+		return BatchResult{}, err
+	}
+
+	candidates, err := collectBatchCandidates(inputDir, target, request.Recursive)
+	if err != nil {
+		return BatchResult{}, err
+	}
+	if len(candidates) == 0 {
+		return BatchResult{}, failure.New(
+			failure.Input,
+			"No supported input files were found.",
+			"Run 'mediaconv formats' to list supported batch inputs.",
+			nil,
+		)
+	}
+
+	result := BatchResult{
+		InputDir:  inputDir,
+		OutputDir: outputDir,
+		Target:    target,
+		Preset:    request.Preset,
+		Recursive: request.Recursive,
+		Total:     len(candidates),
+		Items:     make([]BatchItem, 0, len(candidates)),
+	}
+
+	for _, inputPath := range candidates {
+		if err := ctx.Err(); err != nil {
+			result.Elapsed = time.Since(started)
+			return result, interrupted(err)
+		}
+
+		outputPath, err := batchOutputPath(inputDir, outputDir, inputPath, target)
+		if err != nil {
+			result.Failed++
+			result.Items = append(result.Items, BatchItem{InputPath: inputPath, OK: false, Error: err.Error()})
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+			result.Failed++
+			result.Items = append(result.Items, BatchItem{InputPath: inputPath, OutputPath: outputPath, OK: false, Error: err.Error()})
+			continue
+		}
+
+		converted, err := s.Convert(ctx, ConvertRequest{
+			InputPath:  inputPath,
+			OutputPath: outputPath,
+			Target:     target,
+			Preset:     request.Preset,
+			Overwrite:  request.Overwrite,
+		}, nil)
+		if err != nil {
+			result.Failed++
+			result.Items = append(result.Items, BatchItem{
+				InputPath:  inputPath,
+				OutputPath: outputPath,
+				OK:         false,
+				Error:      failure.Format(err, false),
+			})
+			continue
+		}
+
+		result.Converted++
+		result.Items = append(result.Items, BatchItem{
+			InputPath:  converted.InputPath,
+			OutputPath: converted.OutputPath,
+			OK:         true,
+			Warnings:   converted.Warnings,
+		})
+	}
+
+	result.Elapsed = time.Since(started)
+	return result, nil
+}
+
 func (s *Service) Inspect(ctx context.Context, input string) (media.Info, error) {
 	path, _, err := resolveInput(input)
 	if err != nil {
@@ -225,6 +343,101 @@ func (s *Service) Doctor(ctx context.Context) DoctorReport {
 
 func (s *Service) Formats() []profile.SupportedFormat {
 	return (profile.Registry{}).Formats()
+}
+
+func resolveInputDir(input string) (string, error) {
+	if strings.TrimSpace(input) == "" {
+		return "", failure.New(failure.Usage, "An input directory is required.", "Run 'mediaconv batch --help' for examples.", nil)
+	}
+	path, err := filepath.Abs(input)
+	if err != nil {
+		return "", failure.Wrap(failure.Input, "The input directory path is invalid.", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return "", failure.New(failure.Input, "The input directory does not exist or cannot be accessed.", "Check the path and directory permissions.", err)
+	}
+	if !info.IsDir() {
+		return "", failure.New(failure.Input, "The batch input must be a directory.", "Use 'mediaconv convert' for a single file.", nil)
+	}
+	return filepath.Clean(path), nil
+}
+
+func normalizeTarget(target string) (string, error) {
+	target = strings.ToLower(strings.TrimSpace(target))
+	if target == "" {
+		target = "mp4"
+	}
+	if target != "mp4" && target != "mp3" {
+		return "", failure.New(failure.Usage, fmt.Sprintf("Unsupported target format %q.", target), "Run 'mediaconv formats' to list supported conversions.", nil)
+	}
+	return target, nil
+}
+
+func resolveBatchOutputDir(inputDir, requested string) (string, error) {
+	if strings.TrimSpace(requested) == "" {
+		return inputDir, nil
+	}
+	outputDir, err := filepath.Abs(requested)
+	if err != nil {
+		return "", failure.Wrap(failure.OutputConflict, "The output directory path is invalid.", err)
+	}
+	outputDir = filepath.Clean(outputDir)
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		return "", failure.New(failure.OutputConflict, "The output directory could not be created.", "Check the path and directory permissions.", err)
+	}
+	info, err := os.Stat(outputDir)
+	if err != nil || !info.IsDir() {
+		return "", failure.New(failure.OutputConflict, "The output path is not a directory.", "Choose a directory for --output-dir.", err)
+	}
+	return outputDir, nil
+}
+
+func collectBatchCandidates(root, target string, recursive bool) ([]string, error) {
+	extensions := batchInputExtensions(target)
+	candidates := make([]string, 0)
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if path != root && !recursive {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !entry.Type().IsRegular() {
+			return nil
+		}
+		if extensions[strings.ToLower(filepath.Ext(path))] {
+			candidates = append(candidates, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, failure.Wrap(failure.Input, "The input directory could not be scanned.", err)
+	}
+	sort.Strings(candidates)
+	return candidates, nil
+}
+
+func batchInputExtensions(target string) map[string]bool {
+	switch target {
+	case "mp3":
+		return map[string]bool{".wav": true, ".flac": true, ".m4a": true, ".m4b": true, ".aac": true, ".ogg": true, ".oga": true, ".opus": true}
+	default:
+		return map[string]bool{".webm": true, ".mov": true, ".qt": true, ".mkv": true, ".avi": true, ".m4v": true}
+	}
+}
+
+func batchOutputPath(inputDir, outputDir, inputPath, target string) (string, error) {
+	relative, err := filepath.Rel(inputDir, inputPath)
+	if err != nil {
+		return "", fmt.Errorf("resolve relative path: %w", err)
+	}
+	extension := filepath.Ext(relative)
+	outputRelative := strings.TrimSuffix(relative, extension) + "." + target
+	return filepath.Join(outputDir, outputRelative), nil
 }
 
 func (r *DoctorReport) add(name string, ok bool, detail string) {

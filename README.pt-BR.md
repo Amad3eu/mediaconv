@@ -71,6 +71,9 @@ mediaconv convert "camera.mov" --output "camera.mp4"
 # Converta áudio para MP3.
 mediaconv convert "musica.wav" --to mp3
 
+# Converta uma pasta inteira.
+mediaconv batch "./gravacoes" --to mp4 --output-dir "./convertidos"
+
 # Escolha a saída e permita explicitamente sua substituição.
 mediaconv convert "gravacao.webm" \
   --output "exportados/gravacao.mp4" \
@@ -202,6 +205,7 @@ O desenvolvimento exige Go 1.26 ou mais recente.
 
 ```text
 mediaconv convert INPUT [--to mp4|mp3] [-o SAÍDA] [--preset web|music] [--overwrite]
+mediaconv batch DIRETÓRIO [--to mp4|mp3] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -234,15 +238,15 @@ automaticamente quando stderr não é um terminal.
 | Entrada | Saída | Perfil | Vídeo | Áudio | Situação |
 | --- | --- | --- | --- | --- | --- |
 | WebM | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
-| MOV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
+| MOV / QT | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
 | MKV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
 | AVI | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
-| MP4 | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
+| MP4 / M4V | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
 | WAV | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
 | FLAC | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
-| M4A | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
+| M4A / M4B | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
 | AAC | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
-| OGG | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
+| OGG / OGA / OPUS | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
 | MP3 | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
 
 O perfil `web` converte o primeiro vídeo e o primeiro áudio opcional. Ele gera
@@ -273,7 +277,7 @@ discos removíveis ou compartilhamentos de rede.
 
 - Perfis adicionais, como MP4 para WebM e prévias em GIF.
 - Perfis de saída de áudio, como AAC e WAV.
-- Conversão em lote com controle conservador de concorrência.
+- Controle de concorrência em lote para pastas maiores.
 - Repositórios nativos para `apt`, `dnf` e `apk`.
 - Aceleração por hardware após a criação de testes específicos por capacidade.
 

@@ -26,6 +26,7 @@ func TestExecuteRootHelp(t *testing.T) {
 		"MediaConv is a script-friendly media conversion CLI.",
 		"Usage:",
 		"mediaconv [command]",
+		"batch",
 		"convert",
 		"doctor",
 		"formats",
@@ -36,6 +37,25 @@ func TestExecuteRootHelp(t *testing.T) {
 	} {
 		if !strings.Contains(stdout, fragment) {
 			t.Errorf("help output does not contain %q\noutput:\n%s", fragment, stdout)
+		}
+	}
+}
+
+func TestExecuteBatchHelp(t *testing.T) {
+	code, stdout, stderr := executeForTest(t, "batch", "--help")
+	if code != 0 || stderr != "" {
+		t.Fatalf("Execute(batch --help) = code %d, stderr %q", code, stderr)
+	}
+	for _, fragment := range []string{
+		"mediaconv batch DIRECTORY",
+		"--output-dir",
+		"--overwrite",
+		"--preset",
+		"--recursive",
+		"--to",
+	} {
+		if !strings.Contains(stdout, fragment) {
+			t.Errorf("batch help does not contain %q\noutput:\n%s", fragment, stdout)
 		}
 	}
 }
@@ -120,14 +140,19 @@ func TestExecuteFormats(t *testing.T) {
 		want := strings.Join([]string{
 			"WEBM -> MP4  profile=web  video=h264 (libx264)  audio=aac",
 			"MOV -> MP4  profile=web  video=h264 (libx264)  audio=aac",
+			"QT -> MP4  profile=web  video=h264 (libx264)  audio=aac",
 			"MKV -> MP4  profile=web  video=h264 (libx264)  audio=aac",
 			"AVI -> MP4  profile=web  video=h264 (libx264)  audio=aac",
 			"MP4 -> MP4  profile=web  video=h264 (libx264)  audio=aac",
+			"M4V -> MP4  profile=web  video=h264 (libx264)  audio=aac",
 			"WAV -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
 			"FLAC -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
 			"M4A -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
+			"M4B -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
 			"AAC -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
 			"OGG -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
+			"OGA -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
+			"OPUS -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
 			"MP3 -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
 			"",
 		}, "\n")
@@ -146,7 +171,7 @@ func TestExecuteFormats(t *testing.T) {
 			Formats []profile.SupportedFormat `json:"formats"`
 		}
 		decodeJSON(t, stdout, &envelope)
-		if !envelope.OK || len(envelope.Formats) != 11 {
+		if !envelope.OK || len(envelope.Formats) != 16 {
 			t.Fatalf("formats JSON = %#v", envelope)
 		}
 		format := envelope.Formats[0]

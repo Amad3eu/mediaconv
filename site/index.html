@@ -97,7 +97,8 @@ sudo apt install ./mediaconv_0.3.0_linux_amd64.deb</code></pre>
             <pre><code>mediaconv doctor
 mediaconv convert "video.webm"
 mediaconv convert "camera.mov" --output "camera.mp4"
-mediaconv convert "song.wav" --to mp3</code></pre>
+mediaconv convert "song.wav" --to mp3
+mediaconv batch "./media" --to mp4 --output-dir "./converted"</code></pre>
           </article>
         </div>
       </section>
@@ -164,8 +165,8 @@ mediaconv convert "song.wav" --to mp3</code></pre>
                 <td>Stable</td>
               </tr>
               <tr>
-                <td>MOV</td>
-                <td>MP4</td>
+                <td>MOV / QT</td>
+                <td>MP4 / M4V</td>
                 <td>H.264</td>
                 <td>AAC</td>
                 <td>Stable</td>
@@ -192,14 +193,14 @@ mediaconv convert "song.wav" --to mp3</code></pre>
                 <td>Stable</td>
               </tr>
               <tr>
-                <td>WAV / FLAC / M4A</td>
+                <td>WAV / FLAC / M4A / M4B</td>
                 <td>MP3</td>
                 <td>none</td>
                 <td>MP3</td>
                 <td>Stable</td>
               </tr>
               <tr>
-                <td>AAC / OGG / MP3</td>
+                <td>AAC / OGG / OGA / OPUS / MP3</td>
                 <td>MP3</td>
                 <td>none</td>
                 <td>MP3</td>

@@ -130,6 +130,39 @@ func TestConvertWAVToMP3(t *testing.T) {
 	assertNoStagingDirectories(t, directory)
 }
 
+func TestBatchConvertWAVToMP3(t *testing.T) {
+	requireFFmpeg(t)
+	directory := t.TempDir()
+	inputDir := filepath.Join(directory, "input")
+	outputDir := filepath.Join(directory, "output")
+	if err := os.MkdirAll(inputDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	generateWAV(t, filepath.Join(inputDir, "first.wav"))
+	generateWAV(t, filepath.Join(inputDir, "second.wav"))
+
+	result, err := app.New(app.Config{}).BatchConvert(context.Background(), app.BatchRequest{
+		InputDir:  inputDir,
+		OutputDir: outputDir,
+		Target:    "mp3",
+	})
+	if err != nil {
+		t.Fatalf("BatchConvert() error = %v", err)
+	}
+	if result.Total != 2 || result.Converted != 2 || result.Failed != 0 {
+		t.Fatalf("BatchConvert() totals = total %d, converted %d, failed %d; want 2, 2, 0", result.Total, result.Converted, result.Failed)
+	}
+	for _, name := range []string{"first.mp3", "second.mp3"} {
+		if _, err := os.Stat(filepath.Join(outputDir, name)); err != nil {
+			t.Fatalf("expected output %s: %v", name, err)
+		}
+	}
+	assertNoStagingDirectories(t, directory)
+}
+
 func TestTruncatedWebMIsNotPublished(t *testing.T) {
 	requireFFmpeg(t)
 	directory := t.TempDir()

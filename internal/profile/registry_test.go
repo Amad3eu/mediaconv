@@ -17,14 +17,19 @@ func TestRegistryFormats(t *testing.T) {
 	want := []SupportedFormat{
 		{Source: "webm", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
 		{Source: "mov", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
+		{Source: "qt", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
 		{Source: "mkv", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
 		{Source: "avi", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
 		{Source: "mp4", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
+		{Source: "m4v", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
 		{Source: "wav", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
 		{Source: "flac", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
 		{Source: "m4a", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+		{Source: "m4b", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
 		{Source: "aac", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
 		{Source: "ogg", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+		{Source: "oga", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+		{Source: "opus", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
 		{Source: "mp3", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
 	}
 	if !reflect.DeepEqual(got, want) {

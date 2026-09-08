@@ -64,6 +64,7 @@ func newRootCommand(opts *options, stdin io.Reader, stdout, stderr io.Writer) *c
 
 	root.AddCommand(
 		newConvertCommand(opts, stdout, stderr),
+		newBatchCommand(opts, stdout),
 		newInspectCommand(opts, stdout),
 		newDoctorCommand(opts, stdout),
 		newFormatsCommand(opts, stdout),
@@ -114,6 +115,62 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 	flags.StringVar(&preset, "preset", "", "Conversion profile (default: web for MP4, music for MP3)")
 	flags.BoolVar(&overwrite, "overwrite", false, "Replace an existing regular output file")
 	flags.BoolVar(&noProgress, "no-progress", false, "Disable interactive progress output")
+	return command
+}
+
+func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
+	var (
+		outputDir string
+		target    string
+		preset    string
+		overwrite bool
+		recursive bool
+	)
+	command := &cobra.Command{
+		Use:   "batch DIRECTORY",
+		Short: "Convert supported files in a directory",
+		Args:  exactArgs(1),
+		Example: strings.Join([]string{
+			"mediaconv batch ./recordings --to mp4",
+			"mediaconv batch ./audio --to mp3 --output-dir ./converted",
+			"mediaconv batch ./media --to mp4 --recursive --overwrite",
+		}, "\n"),
+		RunE: func(command *cobra.Command, args []string) error {
+			service := app.New(app.Config{FFmpegPath: opts.ffmpegPath, FFprobePath: opts.ffprobePath})
+			result, err := service.BatchConvert(command.Context(), app.BatchRequest{
+				InputDir:  args[0],
+				OutputDir: outputDir,
+				Target:    target,
+				Preset:    preset,
+				Overwrite: overwrite,
+				Recursive: recursive,
+			})
+			if err != nil && result.Total == 0 {
+				return err
+			}
+			if writeErr := writeBatchResult(stdout, result, opts.json); writeErr != nil {
+				return writeErr
+			}
+			if err != nil {
+				return err
+			}
+			if result.Failed > 0 {
+				return failure.Reported(failure.New(
+					failure.Conversion,
+					"One or more files failed during batch conversion.",
+					"Review the batch summary and rerun failed files with --verbose if needed.",
+					nil,
+				))
+			}
+			return nil
+		},
+	}
+	flags := command.Flags()
+	flags.StringVarP(&outputDir, "output-dir", "o", "", "Output directory (default: input directory)")
+	flags.StringVar(&target, "to", "mp4", "Target format")
+	flags.StringVar(&preset, "preset", "", "Conversion profile (default: web for MP4, music for MP3)")
+	flags.BoolVar(&overwrite, "overwrite", false, "Replace existing regular output files")
+	flags.BoolVarP(&recursive, "recursive", "r", false, "Scan subdirectories recursively")
 	return command
 }
 
