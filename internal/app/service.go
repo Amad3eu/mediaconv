@@ -216,8 +216,10 @@ func (s *Service) Doctor(ctx context.Context) DoctorReport {
 	report.Checks[1].Detail = capabilities.FFprobeVersion + " (" + capabilities.FFprobePath + ")"
 	report.add("libx264 encoder", capabilities.HasEncoder("libx264"), capabilityDetail(capabilities.HasEncoder("libx264")))
 	report.add("AAC encoder", capabilities.HasEncoder("aac"), capabilityDetail(capabilities.HasEncoder("aac")))
+	report.add("libmp3lame encoder", capabilities.HasEncoder("libmp3lame"), capabilityDetail(capabilities.HasEncoder("libmp3lame")))
 	hasMP4 := capabilities.HasMuxer("mp4") || capabilities.HasMuxer("mov")
 	report.add("MP4 muxer", hasMP4, capabilityDetail(hasMP4))
+	report.add("MP3 muxer", capabilities.HasMuxer("mp3"), capabilityDetail(capabilities.HasMuxer("mp3")))
 	return report
 }
 
@@ -279,7 +281,7 @@ func resolveOutput(inputPath string, inputInfo os.FileInfo, requested, target st
 	if target == "" {
 		target = "mp4"
 	}
-	if target != "mp4" {
+	if target != "mp4" && target != "mp3" {
 		return "", failure.New(failure.Usage, fmt.Sprintf("Unsupported target format %q.", target), "Run 'mediaconv formats' to list supported conversions.", nil)
 	}
 
@@ -294,7 +296,7 @@ func resolveOutput(inputPath string, inputInfo os.FileInfo, requested, target st
 	}
 	absolute = filepath.Clean(absolute)
 	if !strings.EqualFold(filepath.Ext(absolute), "."+target) {
-		return "", failure.New(failure.Usage, "The output extension does not match --to mp4.", "Use an output path ending in .mp4.", nil)
+		return "", failure.New(failure.Usage, fmt.Sprintf("The output extension does not match --to %s.", target), fmt.Sprintf("Use an output path ending in .%s.", target), nil)
 	}
 	if samePath(inputPath, absolute) {
 		return "", failure.New(failure.OutputConflict, "The input and output paths must be different.", "Choose a different --output path.", nil)
@@ -344,11 +346,11 @@ func interrupted(err error) error {
 func planFailure(err error) error {
 	switch {
 	case errors.Is(err, profile.ErrMissingCapability):
-		return failure.New(failure.Dependency, "The installed FFmpeg does not provide a required codec or muxer.", "Run 'mediaconv doctor' and install an FFmpeg build with libx264, AAC, and MP4 support.", err)
+		return failure.New(failure.Dependency, "The installed FFmpeg does not provide a required codec or muxer.", "Run 'mediaconv doctor' and install a complete FFmpeg build.", err)
 	case errors.Is(err, profile.ErrUnsupportedTarget), errors.Is(err, profile.ErrUnsupportedPreset):
 		return failure.New(failure.Usage, err.Error(), "Run 'mediaconv formats' to list supported conversions and profiles.", err)
 	default:
-		return failure.New(failure.Input, "The input is not supported by the selected conversion profile.", "The web profile accepts local WebM, MOV, MKV, AVI, or MP4 files containing at least one video stream.", err)
+		return failure.New(failure.Input, "The input is not supported by the selected conversion profile.", "Run 'mediaconv formats' to list supported conversions and profiles.", err)
 	}
 }
 

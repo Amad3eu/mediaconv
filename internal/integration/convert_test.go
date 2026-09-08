@@ -100,6 +100,36 @@ func TestConvertMOVToMP4(t *testing.T) {
 	assertNoStagingDirectories(t, directory)
 }
 
+func TestConvertWAVToMP3(t *testing.T) {
+	requireFFmpeg(t)
+	directory := t.TempDir()
+	input := filepath.Join(directory, "song.wav")
+	output := filepath.Join(directory, "song.mp3")
+	generateWAV(t, input)
+
+	result, err := app.New(app.Config{}).Convert(context.Background(), app.ConvertRequest{
+		InputPath:  input,
+		OutputPath: output,
+		Target:     "mp3",
+	}, nil)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+	if result.Plan.SourceFormat != "wav" {
+		t.Fatalf("SourceFormat = %q, want wav", result.Plan.SourceFormat)
+	}
+	if result.Plan.Profile != "music" {
+		t.Fatalf("Profile = %q, want music", result.Plan.Profile)
+	}
+	if len(result.OutputInfo.VideoStreams()) != 0 {
+		t.Fatalf("video stream count = %d, want 0", len(result.OutputInfo.VideoStreams()))
+	}
+	if result.OutputInfo.AudioStreams()[0].CodecName != "mp3" {
+		t.Fatalf("audio codec = %q, want mp3", result.OutputInfo.AudioStreams()[0].CodecName)
+	}
+	assertNoStagingDirectories(t, directory)
+}
+
 func TestTruncatedWebMIsNotPublished(t *testing.T) {
 	requireFFmpeg(t)
 	directory := t.TempDir()
@@ -196,6 +226,21 @@ func generateMOV(t *testing.T, output string) {
 	command := exec.Command("ffmpeg", args...)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("generate MOV: %v\n%s", err, output)
+	}
+}
+
+func generateWAV(t *testing.T, output string) {
+	t.Helper()
+	args := []string{
+		"-hide_banner", "-loglevel", "error", "-nostdin", "-y",
+		"-f", "lavfi", "-i", "sine=frequency=1000:sample_rate=44100",
+		"-t", "0.5",
+		"-c:a", "pcm_s16le",
+		output,
+	}
+	command := exec.Command("ffmpeg", args...)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("generate WAV: %v\n%s", err, output)
 	}
 }
 

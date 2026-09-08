@@ -91,7 +91,7 @@ type Plan struct {
 	Profile       string         `json:"profile"`
 	VideoMap      string         `json:"video_map"`
 	AudioMap      string         `json:"audio_map,omitempty"`
-	Video         VideoSettings  `json:"video"`
+	Video         *VideoSettings `json:"video,omitempty"`
 	Audio         *AudioSettings `json:"audio,omitempty"`
 	MovFlags      []string       `json:"movflags,omitempty"`
 	CopyMetadata  bool           `json:"copy_metadata"`

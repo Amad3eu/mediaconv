@@ -30,9 +30,10 @@ type SupportedFormat struct {
 }
 
 func (Registry) Formats() []SupportedFormat {
-	sources := []string{"webm", "mov", "mkv", "avi", "mp4"}
-	formats := make([]SupportedFormat, 0, len(sources))
-	for _, source := range sources {
+	videoSources := []string{"webm", "mov", "mkv", "avi", "mp4"}
+	audioSources := []string{"wav", "flac", "m4a", "aac", "ogg", "mp3"}
+	formats := make([]SupportedFormat, 0, len(videoSources)+len(audioSources))
+	for _, source := range videoSources {
 		formats = append(formats, SupportedFormat{
 			Source:      source,
 			Target:      "mp4",
@@ -42,15 +43,39 @@ func (Registry) Formats() []SupportedFormat {
 			Description: "Broadly compatible MP4 for browsers and media players",
 		})
 	}
+	for _, source := range audioSources {
+		formats = append(formats, SupportedFormat{
+			Source:      source,
+			Target:      "mp3",
+			Profile:     "music",
+			VideoCodec:  "none",
+			AudioCodec:  "mp3 (libmp3lame)",
+			Description: "Portable MP3 audio for music players and sharing",
+		})
+	}
 	return formats
 }
 
 func (Registry) Plan(inputPath, outputPath, target, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
 	target = strings.ToLower(strings.TrimSpace(target))
 	preset = strings.ToLower(strings.TrimSpace(preset))
-	if target != "mp4" {
+	if target == "" {
+		target = "mp4"
+	}
+	if preset == "" {
+		preset = defaultPreset(target)
+	}
+	switch target {
+	case "mp4":
+		return planWebMP4(inputPath, outputPath, preset, info, capabilities)
+	case "mp3":
+		return planMusicMP3(inputPath, outputPath, preset, info, capabilities)
+	default:
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedTarget, target)
 	}
+}
+
+func planWebMP4(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
 	if preset != "web" {
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
 	}
@@ -115,7 +140,7 @@ func (Registry) Plan(inputPath, outputPath, target, preset string, info media.In
 		TargetFormat: "mp4",
 		Profile:      "web",
 		VideoMap:     "0:v:0",
-		Video: media.VideoSettings{
+		Video: &media.VideoSettings{
 			Codec:       "libx264",
 			CRF:         23,
 			Preset:      "medium",
@@ -135,10 +160,75 @@ func (Registry) Plan(inputPath, outputPath, target, preset string, info media.In
 	return plan, nil
 }
 
+func planMusicMP3(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	if preset != "music" {
+		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
+	}
+	sourceFormat, ok := supportedAudioSource(inputPath, info.FormatNames)
+	if !ok {
+		return media.Plan{}, fmt.Errorf(
+			"%w: ffprobe detected %q instead of wav, flac, m4a, aac, ogg, or mp3",
+			ErrUnsupportedInput,
+			strings.Join(info.FormatNames, ","),
+		)
+	}
+
+	audios := info.AudioStreams()
+	if len(audios) == 0 {
+		return media.Plan{}, fmt.Errorf("%w: no audio stream was found", ErrUnsupportedInput)
+	}
+	if !capabilities.HasEncoder("libmp3lame") {
+		return media.Plan{}, fmt.Errorf("%w: libmp3lame encoder", ErrMissingCapability)
+	}
+	if !capabilities.HasMuxer("mp3") {
+		return media.Plan{}, fmt.Errorf("%w: MP3 muxer", ErrMissingCapability)
+	}
+
+	warnings := make([]string, 0)
+	if len(info.VideoStreams()) > 0 {
+		warnings = append(warnings, "Video streams are not included in the MP3 output.")
+	}
+	if len(audios) > 1 {
+		warnings = append(warnings, "Only the first audio stream will be converted.")
+	}
+	if len(info.SubtitleStreams()) > 0 {
+		warnings = append(warnings, "Subtitle streams are not included in the MP3 output.")
+	}
+	if info.ChapterCount > 0 {
+		warnings = append(warnings, "Chapters are not included in the MP3 output.")
+	}
+	if inputExtensionDoesNotMatchSource(inputPath, sourceFormat) {
+		warnings = append(warnings, fmt.Sprintf("The input is detected as %s even though its file extension is %s.", strings.ToUpper(sourceFormat), strings.ToLower(filepath.Ext(inputPath))))
+	}
+
+	return media.Plan{
+		InputPath:     inputPath,
+		OutputPath:    outputPath,
+		SourceFormat:  sourceFormat,
+		TargetFormat:  "mp3",
+		Profile:       "music",
+		AudioMap:      "0:a:0",
+		Audio:         &media.AudioSettings{Codec: "libmp3lame", BitRate: "192k"},
+		CopyMetadata:  true,
+		DropChapters:  true,
+		Warnings:      warnings,
+		InputDuration: info.Duration,
+	}, nil
+}
+
 func Verify(plan media.Plan, info media.Info) error {
 	if info.Size <= 0 {
 		return fmt.Errorf("output file is empty")
 	}
+	switch plan.TargetFormat {
+	case "mp3":
+		return verifyMP3(plan, info)
+	default:
+		return verifyMP4(plan, info)
+	}
+}
+
+func verifyMP4(plan media.Plan, info media.Info) error {
 	if !hasFormat(info.FormatNames, "mp4") && !hasFormat(info.FormatNames, "mov") {
 		return fmt.Errorf("ffprobe did not detect an MP4 container")
 	}
@@ -171,6 +261,30 @@ func Verify(plan media.Plan, info media.Info) error {
 	return nil
 }
 
+func verifyMP3(plan media.Plan, info media.Info) error {
+	if !hasFormat(info.FormatNames, "mp3") {
+		return fmt.Errorf("ffprobe did not detect an MP3 container")
+	}
+	audios := info.AudioStreams()
+	if len(audios) == 0 || audios[0].CodecName != "mp3" {
+		return fmt.Errorf("output does not contain the expected MP3 audio stream")
+	}
+	if plan.InputDuration > 0 {
+		if info.Duration <= 0 {
+			return fmt.Errorf("output duration could not be verified")
+		}
+		tolerance := maxDuration(2*time.Second, plan.InputDuration/10)
+		if time.Duration(math.Abs(float64(info.Duration-plan.InputDuration))) > tolerance {
+			return fmt.Errorf(
+				"output duration %s differs unexpectedly from input duration %s",
+				info.Duration.Round(time.Millisecond),
+				plan.InputDuration.Round(time.Millisecond),
+			)
+		}
+	}
+	return nil
+}
+
 func hasFormat(formats []string, target string) bool {
 	for _, format := range formats {
 		if strings.EqualFold(format, target) {
@@ -178,6 +292,15 @@ func hasFormat(formats []string, target string) bool {
 		}
 	}
 	return false
+}
+
+func defaultPreset(target string) string {
+	switch target {
+	case "mp3":
+		return "music"
+	default:
+		return "web"
+	}
 }
 
 func supportedVideoSource(inputPath string, formats []string) (string, bool) {
@@ -220,6 +343,52 @@ func supportedVideoSource(inputPath string, formats []string) (string, bool) {
 	}
 }
 
+func supportedAudioSource(inputPath string, formats []string) (string, bool) {
+	switch strings.TrimPrefix(strings.ToLower(filepath.Ext(inputPath)), ".") {
+	case "wav":
+		if hasFormat(formats, "wav") {
+			return "wav", true
+		}
+	case "flac":
+		if hasFormat(formats, "flac") {
+			return "flac", true
+		}
+	case "m4a":
+		if hasFormat(formats, "mov") || hasFormat(formats, "mp4") {
+			return "m4a", true
+		}
+	case "aac":
+		if hasFormat(formats, "aac") {
+			return "aac", true
+		}
+	case "ogg", "oga", "opus":
+		if hasFormat(formats, "ogg") {
+			return "ogg", true
+		}
+	case "mp3":
+		if hasFormat(formats, "mp3") {
+			return "mp3", true
+		}
+	}
+
+	switch {
+	case hasFormat(formats, "wav"):
+		return "wav", true
+	case hasFormat(formats, "flac"):
+		return "flac", true
+	case hasFormat(formats, "aac"):
+		return "aac", true
+	case hasFormat(formats, "ogg"):
+		return "ogg", true
+	case hasFormat(formats, "mp3"):
+		return "mp3", true
+	case hasFormat(formats, "mov"), hasFormat(formats, "mp4"):
+		return "m4a", true
+	default:
+		return "", false
+	}
+}
+
 func inputExtensionDoesNotMatchSource(inputPath, source string) bool {
 	extension := strings.TrimPrefix(strings.ToLower(filepath.Ext(inputPath)), ".")
 	if extension == "" {
@@ -232,6 +401,10 @@ func inputExtensionDoesNotMatchSource(inputPath, source string) bool {
 		return extension != "mov" && extension != "qt"
 	case "mp4":
 		return extension != "mp4" && extension != "m4v"
+	case "m4a":
+		return extension != "m4a" && extension != "m4b"
+	case "ogg":
+		return extension != "ogg" && extension != "oga" && extension != "opus"
 	default:
 		return extension != source
 	}

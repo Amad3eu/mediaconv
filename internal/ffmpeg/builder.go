@@ -18,23 +18,28 @@ func BuildArgs(plan media.Plan, temporaryOutput string) []string {
 		"-n",
 		"-protocol_whitelist", "file",
 		"-i", plan.InputPath,
-		"-map", plan.VideoMap,
 	}
 
+	if plan.Video != nil {
+		args = append(args, "-map", plan.VideoMap)
+	}
 	if plan.Audio != nil {
 		args = append(args, "-map", plan.AudioMap)
 	}
 
-	args = append(args,
-		"-sn",
-		"-dn",
-		"-c:v", plan.Video.Codec,
-		"-crf", strconv.Itoa(plan.Video.CRF),
-		"-preset", plan.Video.Preset,
-		"-pix_fmt", plan.Video.PixelFormat,
-	)
-	if len(plan.Video.Filters) > 0 {
-		args = append(args, "-vf", strings.Join(plan.Video.Filters, ","))
+	args = append(args, "-sn", "-dn")
+	if plan.Video != nil {
+		args = append(args,
+			"-c:v", plan.Video.Codec,
+			"-crf", strconv.Itoa(plan.Video.CRF),
+			"-preset", plan.Video.Preset,
+			"-pix_fmt", plan.Video.PixelFormat,
+		)
+		if len(plan.Video.Filters) > 0 {
+			args = append(args, "-vf", strings.Join(plan.Video.Filters, ","))
+		}
+	} else {
+		args = append(args, "-vn")
 	}
 	if plan.Audio != nil {
 		args = append(args,

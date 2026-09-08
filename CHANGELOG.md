@@ -7,6 +7,16 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [0.3.0] - 2026-09-08
+
+### Adicionado
+
+- Perfil `music` para converter WAV, FLAC, M4A, AAC, OGG e MP3 para MP3 com
+  `libmp3lame`.
+- Seleção automática de perfil: `web` para MP4 e `music` para MP3.
+- Validação específica para saídas MP3 antes da publicação do arquivo final.
+- Teste de integração real para conversão WAV para MP3.
+
 ## [0.2.0] - 2026-09-08
 
 ### Adicionado
@@ -62,7 +72,8 @@ ser instalado separadamente; use `mediaconv doctor` para conferir a instalação
 - Releases automatizadas com binários, checksums, SBOMs, assinatura keyless e
   atestados de proveniência.
 
-[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.2.0...HEAD
+[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Amad3eu/mediaconv/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Amad3eu/mediaconv/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Amad3eu/mediaconv/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Amad3eu/mediaconv/compare/v0.1.1...v0.1.2

@@ -88,6 +88,7 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 		Example: strings.TrimSpace(`
   mediaconv convert recording.webm
   mediaconv convert clip.mov --output clip.mp4
+  mediaconv convert song.wav --to mp3
   mediaconv convert archive.mkv --to mp4 --preset web --overwrite`),
 		RunE: func(command *cobra.Command, args []string) error {
 			service := app.New(app.Config{FFmpegPath: opts.ffmpegPath, FFprobePath: opts.ffprobePath})
@@ -110,7 +111,7 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 	flags := command.Flags()
 	flags.StringVarP(&outputPath, "output", "o", "", "Output path (default: INPUT with an .mp4 extension)")
 	flags.StringVar(&target, "to", "mp4", "Target format")
-	flags.StringVar(&preset, "preset", "web", "Conversion profile")
+	flags.StringVar(&preset, "preset", "", "Conversion profile (default: web for MP4, music for MP3)")
 	flags.BoolVar(&overwrite, "overwrite", false, "Replace an existing regular output file")
 	flags.BoolVar(&noProgress, "no-progress", false, "Disable interactive progress output")
 	return command

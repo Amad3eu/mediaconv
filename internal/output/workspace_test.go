@@ -53,6 +53,25 @@ func TestNewWorkspaceStagesBesideFinalAndCleansUp(t *testing.T) {
 	}
 }
 
+func TestNewWorkspaceUsesFinalExtension(t *testing.T) {
+	t.Parallel()
+
+	parent := t.TempDir()
+	workspace, err := NewWorkspace(filepath.Join(parent, "song.mp3"))
+	if err != nil {
+		t.Fatalf("NewWorkspace() error = %v", err)
+	}
+	t.Cleanup(func() {
+		if err := workspace.Cleanup(); err != nil {
+			t.Errorf("Cleanup() error = %v", err)
+		}
+	})
+
+	if got, want := filepath.Base(workspace.StagePath()), "output.mp3"; got != want {
+		t.Errorf("StagePath() base = %q, want %q", got, want)
+	}
+}
+
 func TestNewWorkspaceFailsWhenOutputParentDoesNotExist(t *testing.T) {
 	t.Parallel()
 

@@ -261,7 +261,7 @@ func TestBuildArgs(t *testing.T) {
 		TargetFormat: "mp4",
 		VideoMap:     "0:v:0",
 		AudioMap:     "0:a:0",
-		Video: media.VideoSettings{
+		Video: &media.VideoSettings{
 			Codec:       "libx264",
 			CRF:         23,
 			Preset:      "medium",
@@ -314,7 +314,7 @@ func TestBuildArgsWithoutOptionalAudioOrContainerOptions(t *testing.T) {
 		InputPath:    "input.webm",
 		TargetFormat: "mp4",
 		VideoMap:     "0:v:0",
-		Video: media.VideoSettings{
+		Video: &media.VideoSettings{
 			Codec:       "libx264",
 			CRF:         20,
 			Preset:      "slow",
@@ -330,6 +330,45 @@ func TestBuildArgsWithoutOptionalAudioOrContainerOptions(t *testing.T) {
 	}
 	if countArgument(args, "-map") != 1 {
 		t.Errorf("BuildArgs() map count = %d, want 1: %v", countArgument(args, "-map"), args)
+	}
+}
+
+func TestBuildArgsForAudioOnlyPlan(t *testing.T) {
+	t.Parallel()
+
+	plan := media.Plan{
+		InputPath:    "/media/song.wav",
+		TargetFormat: "mp3",
+		AudioMap:     "0:a:0",
+		Audio:        &media.AudioSettings{Codec: "libmp3lame", BitRate: "192k"},
+		CopyMetadata: true,
+		DropChapters: true,
+	}
+
+	want := []string{
+		"-hide_banner",
+		"-nostdin",
+		"-loglevel", "error",
+		"-nostats",
+		"-stats_period", "0.5",
+		"-progress", "pipe:1",
+		"-n",
+		"-protocol_whitelist", "file",
+		"-i", "/media/song.wav",
+		"-map", "0:a:0",
+		"-sn",
+		"-dn",
+		"-vn",
+		"-c:a", "libmp3lame",
+		"-b:a", "192k",
+		"-map_metadata", "0",
+		"-map_chapters", "-1",
+		"-f", "mp3",
+		"/tmp/staged output.mp3",
+	}
+
+	if got := BuildArgs(plan, "/tmp/staged output.mp3"); !reflect.DeepEqual(got, want) {
+		t.Errorf("BuildArgs() mismatch\n got: %#v\nwant: %#v", got, want)
 	}
 }
 

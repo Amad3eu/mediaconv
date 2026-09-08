@@ -16,6 +16,9 @@ broadly compatible MP4 using H.264 video and AAC audio. MediaConv validates the
 input, converts into a private staging directory, verifies the result, and only
 then publishes the output.
 
+It also includes a `music` profile for converting common audio files to portable
+MP3 using libmp3lame.
+
 > [!NOTE]
 > MediaConv is in early development. Until v1.0, commands and flags may change
 > between minor releases.
@@ -38,6 +41,7 @@ Use MediaConv when you want:
 ## Features
 
 - Local video to MP4 conversion with a compatibility-focused profile.
+- Local audio to MP3 conversion with a music-focused profile.
 - Interactive progress when stderr is a terminal; clean output in scripts.
 - No overwrite unless `--overwrite` is explicitly provided.
 - Temporary output cleanup after failure or interruption.
@@ -63,6 +67,9 @@ mediaconv convert "recording.webm"
 # Convert a camera export to MP4.
 mediaconv convert "camera.mov" --output "camera.mp4"
 
+# Convert audio to MP3.
+mediaconv convert "song.wav" --to mp3
+
 # Select an output and explicitly allow replacement.
 mediaconv convert "recording.webm" \
   --output "exports/recording.mp4" \
@@ -75,9 +82,9 @@ Latest release: <https://github.com/Amad3eu/mediaconv/releases/latest>
 
 ## Requirements
 
-MediaConv does not bundle or download FFmpeg. Install `ffmpeg` and `ffprobe` before
-using it. The initial `web` profile also requires the `libx264` video encoder, the
-AAC audio encoder, and the MP4 muxer.
+MediaConv does not bundle or download FFmpeg. Install `ffmpeg` and `ffprobe`
+before using it. The `web` profile requires `libx264`, AAC encoding, and MP4
+muxing. The `music` profile requires `libmp3lame` and MP3 muxing.
 
 Common installation commands:
 
@@ -153,16 +160,16 @@ install it with your system package manager:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./mediaconv_0.2.0_linux_amd64.deb
+sudo apt install ./mediaconv_0.3.0_linux_amd64.deb
 
 # Fedora / RHEL
-sudo dnf install ./mediaconv_0.2.0_linux_amd64.rpm
+sudo dnf install ./mediaconv_0.3.0_linux_amd64.rpm
 
 # Alpine
-sudo apk add --allow-untrusted ./mediaconv_0.2.0_linux_amd64.apk
+sudo apk add --allow-untrusted ./mediaconv_0.3.0_linux_amd64.apk
 ```
 
-The package names above use `0.2.0` as an example. Use the latest available
+The package names above use `0.3.0` as an example. Use the latest available
 version from the release page.
 
 ### Windows with Scoop
@@ -193,7 +200,7 @@ Development requires Go 1.26 or newer.
 ## Commands
 
 ```text
-mediaconv convert INPUT [--to mp4] [-o OUTPUT] [--preset web] [--overwrite]
+mediaconv convert INPUT [--to mp4|mp3] [-o OUTPUT] [--preset web|music] [--overwrite]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -230,11 +237,21 @@ stderr is not a terminal.
 | MKV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
 | AVI | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
 | MP4 | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Stable |
+| WAV | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
+| FLAC | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
+| M4A | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
+| AAC | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
+| OGG | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
+| MP3 | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
 
 The `web` profile converts the first video stream and the first optional audio
 stream. It produces `yuv420p`, preserves compatible metadata, drops chapters and
 subtitles, pads odd dimensions to even values, and enables MP4 fast start. The CLI
 warns when extra streams, transparency, chapters, subtitles, or HDR may be lost.
+
+The `music` profile converts the first audio stream, writes MP3 with
+`libmp3lame` at 192 kbit/s, drops video/subtitle streams, and verifies the MP3
+output before publishing it.
 
 ## Safety and privacy
 
@@ -254,7 +271,7 @@ filesystems, but may not be available on some removable or network filesystems.
 ## Roadmap
 
 - Additional profiles such as MP4 to WebM and GIF previews.
-- Audio extraction to MP3, AAC, and WAV.
+- Audio output profiles such as AAC and WAV.
 - Batch conversion with conservative concurrency controls.
 - Native package repositories for `apt`, `dnf`, and `apk`.
 - Optional hardware acceleration after capability-specific tests are available.

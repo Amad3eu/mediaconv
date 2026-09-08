@@ -27,7 +27,7 @@ func NewWorkspace(finalPath string) (*Workspace, error) {
 
 	return &Workspace{
 		directory: directory,
-		stagePath: filepath.Join(directory, "output.mp4"),
+		stagePath: filepath.Join(directory, "output"+filepath.Ext(finalPath)),
 	}, nil
 }
 

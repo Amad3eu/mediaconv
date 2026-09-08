@@ -20,6 +20,12 @@ func TestRegistryFormats(t *testing.T) {
 		{Source: "mkv", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
 		{Source: "avi", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
 		{Source: "mp4", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
+		{Source: "wav", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+		{Source: "flac", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+		{Source: "m4a", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+		{Source: "aac", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+		{Source: "ogg", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+		{Source: "mp3", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Formats() = %#v, want %#v", got, want)
@@ -70,7 +76,7 @@ func TestRegistryPlanCreatesWebMP4Plan(t *testing.T) {
 		PixelFormat: "yuv420p",
 		Filters:     []string{},
 	}
-	if !reflect.DeepEqual(got.Video, wantVideo) {
+	if got.Video == nil || !reflect.DeepEqual(*got.Video, wantVideo) {
 		t.Errorf("Video = %#v, want %#v", got.Video, wantVideo)
 	}
 	wantAudio := &media.AudioSettings{Codec: "aac", BitRate: "192k"}
@@ -106,8 +112,73 @@ func TestRegistryPlanPadsOddDimensionsAndOmitsAudio(t *testing.T) {
 		t.Errorf("audio settings = %#v, map = %q; want no audio", got.Audio, got.AudioMap)
 	}
 	wantFilters := []string{"pad=ceil(iw/2)*2:ceil(ih/2)*2"}
-	if !reflect.DeepEqual(got.Video.Filters, wantFilters) {
-		t.Errorf("Filters = %v, want %v", got.Video.Filters, wantFilters)
+	if got.Video == nil || !reflect.DeepEqual(got.Video.Filters, wantFilters) {
+		t.Errorf("Filters = %#v, want %v", got.Video, wantFilters)
+	}
+}
+
+func TestRegistryPlanCreatesMusicMP3Plan(t *testing.T) {
+	t.Parallel()
+
+	info := supportedAudioInputInfo()
+	info.Duration = 2*time.Minute + 3*time.Second
+	got, err := (Registry{}).Plan("song.wav", "song.mp3", " mp3 ", "", info, supportedCapabilities())
+	if err != nil {
+		t.Fatalf("Plan() error = %v", err)
+	}
+
+	if got.SourceFormat != "wav" || got.TargetFormat != "mp3" || got.Profile != "music" {
+		t.Errorf("plan formats/profile = %#v", got)
+	}
+	if got.Video != nil || got.VideoMap != "" {
+		t.Errorf("video settings = %#v, map = %q; want no video", got.Video, got.VideoMap)
+	}
+	if got.AudioMap != "0:a:0" {
+		t.Errorf("AudioMap = %q, want 0:a:0", got.AudioMap)
+	}
+	wantAudio := &media.AudioSettings{Codec: "libmp3lame", BitRate: "192k"}
+	if !reflect.DeepEqual(got.Audio, wantAudio) {
+		t.Errorf("Audio = %#v, want %#v", got.Audio, wantAudio)
+	}
+	if !got.CopyMetadata || !got.DropChapters {
+		t.Errorf("metadata/chapter settings = copy:%v drop:%v", got.CopyMetadata, got.DropChapters)
+	}
+	if got.InputDuration != info.Duration {
+		t.Errorf("InputDuration = %v, want %v", got.InputDuration, info.Duration)
+	}
+}
+
+func TestRegistryPlanSupportsCommonAudioContainers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		inputPath  string
+		formats    []string
+		wantSource string
+	}{
+		{name: "wav", inputPath: "song.wav", formats: []string{"wav"}, wantSource: "wav"},
+		{name: "flac", inputPath: "song.flac", formats: []string{"flac"}, wantSource: "flac"},
+		{name: "m4a", inputPath: "song.m4a", formats: []string{"mov", "mp4", "m4a"}, wantSource: "m4a"},
+		{name: "aac", inputPath: "song.aac", formats: []string{"aac"}, wantSource: "aac"},
+		{name: "ogg", inputPath: "song.ogg", formats: []string{"ogg"}, wantSource: "ogg"},
+		{name: "mp3", inputPath: "song.mp3", formats: []string{"mp3"}, wantSource: "mp3"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			info := supportedAudioInputInfo()
+			info.FormatNames = test.formats
+
+			got, err := (Registry{}).Plan(test.inputPath, "song-output.mp3", "mp3", "music", info, supportedCapabilities())
+			if err != nil {
+				t.Fatalf("Plan() error = %v", err)
+			}
+			if got.SourceFormat != test.wantSource {
+				t.Errorf("SourceFormat = %q, want %q", got.SourceFormat, test.wantSource)
+			}
+		})
 	}
 }
 
@@ -231,12 +302,36 @@ func TestRegistryPlanRejectsUnsupportedInputsAndMissingCapabilities(t *testing.T
 			info: inputInfoWithAudio(), caps: media.Capabilities{Encoders: map[string]bool{"libx264": true}, Muxers: map[string]bool{"mp4": true}},
 			wantErr: ErrMissingCapability, want: "AAC encoder",
 		},
+		{
+			name:   "mp3 unsupported source",
+			target: "mp3", preset: "music",
+			info: media.Info{FormatNames: []string{"webm"}, Streams: supportedAudioInputInfo().Streams},
+			caps: supportedCapabilities(), wantErr: ErrUnsupportedInput, want: "instead of wav, flac, m4a, aac, ogg, or mp3",
+		},
+		{
+			name:   "mp3 audio stream",
+			target: "mp3", preset: "music",
+			info: media.Info{FormatNames: []string{"wav"}, Streams: []media.Stream{{CodecType: "video", CodecName: "h264"}}},
+			caps: supportedCapabilities(), wantErr: ErrUnsupportedInput, want: "no audio stream",
+		},
+		{
+			name:   "mp3 encoder",
+			target: "mp3", preset: "music",
+			info: supportedAudioInputInfo(), caps: media.Capabilities{Encoders: map[string]bool{"aac": true}, Muxers: map[string]bool{"mp3": true}},
+			wantErr: ErrMissingCapability, want: "libmp3lame",
+		},
+		{
+			name:   "mp3 muxer",
+			target: "mp3", preset: "music",
+			info: supportedAudioInputInfo(), caps: media.Capabilities{Encoders: map[string]bool{"libmp3lame": true}, Muxers: map[string]bool{"mp4": true}},
+			wantErr: ErrMissingCapability, want: "MP3 muxer",
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := (Registry{}).Plan("clip.webm", "clip.mp4", test.target, test.preset, test.info, test.caps)
+			_, err := (Registry{}).Plan("input", "output", test.target, test.preset, test.info, test.caps)
 			if !errors.Is(err, test.wantErr) {
 				t.Fatalf("Plan() error = %v, want errors.Is(..., %v)", err, test.wantErr)
 			}
@@ -260,6 +355,16 @@ func TestVerifyAcceptsExpectedOutput(t *testing.T) {
 	info.Streams = info.Streams[:1]
 	if err := Verify(media.Plan{}, info); err != nil {
 		t.Errorf("Verify(video-only) error = %v", err)
+	}
+}
+
+func TestVerifyAcceptsExpectedMP3Output(t *testing.T) {
+	t.Parallel()
+
+	plan := media.Plan{TargetFormat: "mp3", Audio: &media.AudioSettings{Codec: "libmp3lame", BitRate: "192k"}}
+	info := validMP3OutputInfo()
+	if err := Verify(plan, info); err != nil {
+		t.Errorf("Verify() error = %v", err)
 	}
 }
 
@@ -312,6 +417,33 @@ func TestVerifyRejectsInvalidOutput(t *testing.T) {
 	}
 }
 
+func TestVerifyRejectsInvalidMP3Output(t *testing.T) {
+	t.Parallel()
+
+	mp3Plan := media.Plan{TargetFormat: "mp3", Audio: &media.AudioSettings{Codec: "libmp3lame"}}
+	tests := []struct {
+		name   string
+		mutate func(*media.Info)
+		want   string
+	}{
+		{name: "container", mutate: func(info *media.Info) { info.FormatNames = []string{"wav"} }, want: "MP3 container"},
+		{name: "no audio", mutate: func(info *media.Info) { info.Streams = nil }, want: "MP3 audio"},
+		{name: "audio codec", mutate: func(info *media.Info) { info.Streams[0].CodecName = "aac" }, want: "MP3 audio"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			info := validMP3OutputInfo()
+			test.mutate(&info)
+			err := Verify(mp3Plan, info)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Errorf("Verify() error = %v, want substring %q", err, test.want)
+			}
+		})
+	}
+}
+
 func supportedInputInfo() media.Info {
 	return media.Info{
 		FormatNames: []string{"matroska", "WebM"},
@@ -332,10 +464,25 @@ func inputInfoWithAudio() media.Info {
 	return info
 }
 
+func supportedAudioInputInfo() media.Info {
+	return media.Info{
+		FormatNames: []string{"wav"},
+		Streams: []media.Stream{{
+			Index:      0,
+			CodecType:  "audio",
+			CodecName:  "pcm_s16le",
+			Channels:   2,
+			SampleRate: 44100,
+			Duration:   time.Minute,
+			Tags:       map[string]string{"title": "Example"},
+		}},
+	}
+}
+
 func supportedCapabilities() media.Capabilities {
 	return media.Capabilities{
-		Encoders: map[string]bool{"libx264": true, "aac": true},
-		Muxers:   map[string]bool{"mp4": true, "mov": true},
+		Encoders: map[string]bool{"libx264": true, "aac": true, "libmp3lame": true},
+		Muxers:   map[string]bool{"mp4": true, "mov": true, "mp3": true},
 	}
 }
 
@@ -346,6 +493,16 @@ func validOutputInfo() media.Info {
 		Streams: []media.Stream{
 			{Index: 0, CodecType: "video", CodecName: "h264", Width: 1280, Height: 720},
 			{Index: 1, CodecType: "audio", CodecName: "aac", Channels: 2},
+		},
+	}
+}
+
+func validMP3OutputInfo() media.Info {
+	return media.Info{
+		FormatNames: []string{"mp3"},
+		Size:        1024,
+		Streams: []media.Stream{
+			{Index: 0, CodecType: "audio", CodecName: "mp3", Channels: 2},
 		},
 	}
 }

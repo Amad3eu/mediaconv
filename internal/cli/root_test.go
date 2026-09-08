@@ -123,6 +123,12 @@ func TestExecuteFormats(t *testing.T) {
 			"MKV -> MP4  profile=web  video=h264 (libx264)  audio=aac",
 			"AVI -> MP4  profile=web  video=h264 (libx264)  audio=aac",
 			"MP4 -> MP4  profile=web  video=h264 (libx264)  audio=aac",
+			"WAV -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
+			"FLAC -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
+			"M4A -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
+			"AAC -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
+			"OGG -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
+			"MP3 -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
 			"",
 		}, "\n")
 		if stdout != want {
@@ -140,7 +146,7 @@ func TestExecuteFormats(t *testing.T) {
 			Formats []profile.SupportedFormat `json:"formats"`
 		}
 		decodeJSON(t, stdout, &envelope)
-		if !envelope.OK || len(envelope.Formats) != 5 {
+		if !envelope.OK || len(envelope.Formats) != 11 {
 			t.Fatalf("formats JSON = %#v", envelope)
 		}
 		format := envelope.Formats[0]

@@ -16,6 +16,9 @@ MP4 amplamente compatível, usando vídeo H.264 e áudio AAC. O MediaConv valida
 entrada, converte em uma área temporária privada, verifica o resultado e somente
 então publica a saída.
 
+Ele também inclui o perfil `music`, para converter arquivos de áudio comuns para
+MP3 portátil usando libmp3lame.
+
 > [!NOTE]
 > O MediaConv está em desenvolvimento inicial. Até a v1.0, comandos e opções
 > podem mudar entre versões menores.
@@ -38,6 +41,7 @@ Use o MediaConv quando você quiser:
 ## Recursos
 
 - Conversão local de vídeos para MP4 com foco em compatibilidade.
+- Conversão local de áudio para MP3 com perfil focado em música.
 - Progresso interativo no terminal e saída limpa para scripts.
 - Nenhuma sobrescrita sem a opção explícita `--overwrite`.
 - Limpeza de arquivos temporários após falha ou interrupção.
@@ -64,6 +68,9 @@ mediaconv convert "gravacao.webm"
 # Converta uma exportação de câmera para MP4.
 mediaconv convert "camera.mov" --output "camera.mp4"
 
+# Converta áudio para MP3.
+mediaconv convert "musica.wav" --to mp3
+
 # Escolha a saída e permita explicitamente sua substituição.
 mediaconv convert "gravacao.webm" \
   --output "exportados/gravacao.mp4" \
@@ -77,8 +84,8 @@ Site do projeto: <https://amad3eu.github.io/mediaconv/>
 ## Requisitos
 
 O MediaConv não inclui nem baixa o FFmpeg. Instale `ffmpeg` e `ffprobe` antes de
-usá-lo. O perfil inicial `web` também exige o encoder de vídeo `libx264`, o encoder
-de áudio AAC e o muxer MP4.
+usá-lo. O perfil `web` exige `libx264`, codificação AAC e muxer MP4. O perfil
+`music` exige `libmp3lame` e muxer MP3.
 
 Comandos comuns de instalação:
 
@@ -154,16 +161,16 @@ com o gerenciador do sistema:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./mediaconv_0.2.0_linux_amd64.deb
+sudo apt install ./mediaconv_0.3.0_linux_amd64.deb
 
 # Fedora / RHEL
-sudo dnf install ./mediaconv_0.2.0_linux_amd64.rpm
+sudo dnf install ./mediaconv_0.3.0_linux_amd64.rpm
 
 # Alpine
-sudo apk add --allow-untrusted ./mediaconv_0.2.0_linux_amd64.apk
+sudo apk add --allow-untrusted ./mediaconv_0.3.0_linux_amd64.apk
 ```
 
-Os nomes acima usam `0.2.0` como exemplo. Use sempre a versão mais recente da
+Os nomes acima usam `0.3.0` como exemplo. Use sempre a versão mais recente da
 página de release.
 
 ### Windows com Scoop
@@ -194,7 +201,7 @@ O desenvolvimento exige Go 1.26 ou mais recente.
 ## Comandos
 
 ```text
-mediaconv convert INPUT [--to mp4] [-o SAÍDA] [--preset web] [--overwrite]
+mediaconv convert INPUT [--to mp4|mp3] [-o SAÍDA] [--preset web|music] [--overwrite]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -231,11 +238,20 @@ automaticamente quando stderr não é um terminal.
 | MKV | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
 | AVI | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
 | MP4 | MP4 | `web` | H.264 (`libx264`, CRF 23) | AAC 192 kbit/s | Estável |
+| WAV | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
+| FLAC | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
+| M4A | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
+| AAC | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
+| OGG | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
+| MP3 | MP3 | `music` | nenhum | MP3 (`libmp3lame`) 192 kbit/s | Estável |
 
 O perfil `web` converte o primeiro vídeo e o primeiro áudio opcional. Ele gera
 `yuv420p`, preserva metadados compatíveis, descarta capítulos e legendas, ajusta
 dimensões ímpares para valores pares e ativa fast start no MP4. O CLI avisa quando
 streams extras, transparência, capítulos, legendas ou HDR podem ser perdidos.
+
+O perfil `music` converte o primeiro áudio, grava MP3 com `libmp3lame` a
+192 kbit/s, descarta vídeo/legendas e verifica o MP3 antes de publicar a saída.
 
 ## Segurança e privacidade
 
@@ -256,7 +272,7 @@ discos removíveis ou compartilhamentos de rede.
 ## Próximos passos
 
 - Perfis adicionais, como MP4 para WebM e prévias em GIF.
-- Extração de áudio para MP3, AAC e WAV.
+- Perfis de saída de áudio, como AAC e WAV.
 - Conversão em lote com controle conservador de concorrência.
 - Repositórios nativos para `apt`, `dnf` e `apk`.
 - Aceleração por hardware após a criação de testes específicos por capacidade.

@@ -28,10 +28,10 @@
       <section class="hero-grid">
         <div class="hero-copy">
           <p class="eyebrow">FFmpeg-powered CLI</p>
-          <h1>Convert common videos to MP4 with safer defaults.</h1>
+          <h1>Convert videos to MP4 and audio to MP3 with safer defaults.</h1>
           <p class="lede">
             MediaConv wraps a careful FFmpeg workflow in a small terminal tool:
-            diagnose dependencies, convert locally, verify the MP4, and publish
+            diagnose dependencies, convert locally, verify the output, and publish
             only the finished result.
           </p>
           <div class="actions">
@@ -55,9 +55,10 @@
 OK  ffmpeg   available
 OK  ffprobe  available
 OK  libx264  available
+OK  libmp3lame available
 
-$ mediaconv convert "camera.mov" --output "camera.mp4"
-output: camera.mp4
+$ mediaconv convert "song.wav" --to mp3
+output: song.mp3
 status: converted and verified</code></pre>
         </section>
       </section>
@@ -87,7 +88,7 @@ irm https://amad3eu.github.io/mediaconv/install.ps1 | iex
 brew install --cask Amad3eu/tap/mediaconv
 scoop bucket add amad3eu https://github.com/Amad3eu/scoop-bucket
 scoop install amad3eu/mediaconv
-sudo apt install ./mediaconv_0.2.0_linux_amd64.deb</code></pre>
+sudo apt install ./mediaconv_0.3.0_linux_amd64.deb</code></pre>
           </article>
           <article>
             <span class="step-number">3</span>
@@ -95,7 +96,8 @@ sudo apt install ./mediaconv_0.2.0_linux_amd64.deb</code></pre>
             <p>Run the conversion directly in your terminal or scripts.</p>
             <pre><code>mediaconv doctor
 mediaconv convert "video.webm"
-mediaconv convert "camera.mov" --output "camera.mp4"</code></pre>
+mediaconv convert "camera.mov" --output "camera.mp4"
+mediaconv convert "song.wav" --to mp3</code></pre>
           </article>
         </div>
       </section>
@@ -140,7 +142,7 @@ mediaconv convert "camera.mov" --output "camera.mp4"</code></pre>
       <section class="band">
         <div class="section-head">
           <p class="eyebrow">Current support</p>
-          <h2>One focused profile, more useful inputs.</h2>
+          <h2>Focused profiles for video and audio.</h2>
         </div>
         <section class="support-table" aria-label="Supported formats">
           <table>
@@ -187,6 +189,20 @@ mediaconv convert "camera.mov" --output "camera.mp4"</code></pre>
                 <td>MP4</td>
                 <td>H.264</td>
                 <td>AAC</td>
+                <td>Stable</td>
+              </tr>
+              <tr>
+                <td>WAV / FLAC / M4A</td>
+                <td>MP3</td>
+                <td>none</td>
+                <td>MP3</td>
+                <td>Stable</td>
+              </tr>
+              <tr>
+                <td>AAC / OGG / MP3</td>
+                <td>MP3</td>
+                <td>none</td>
+                <td>MP3</td>
                 <td>Stable</td>
               </tr>
             </tbody>
