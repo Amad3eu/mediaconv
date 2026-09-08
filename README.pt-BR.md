@@ -117,6 +117,19 @@ curl -fsSL https://amad3eu.github.io/mediaconv/install.sh \
   | MEDIACONV_INSTALL_DIR="$HOME/.local/bin" sh
 ```
 
+Usuários de Windows podem instalar a última release com PowerShell:
+
+```powershell
+irm https://amad3eu.github.io/mediaconv/install.ps1 | iex
+```
+
+Para instalar em um diretório específico:
+
+```powershell
+$env:MEDIACONV_INSTALL_DIR="$env:USERPROFILE\bin"
+irm https://amad3eu.github.io/mediaconv/install.ps1 | iex
+```
+
 ### Arquivo de release
 
 Baixe o arquivo correspondente ao seu sistema em
@@ -138,16 +151,16 @@ com o gerenciador do sistema:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./mediaconv_0.1.2_linux_amd64.deb
+sudo apt install ./mediaconv_0.1.3_linux_amd64.deb
 
 # Fedora / RHEL
-sudo dnf install ./mediaconv_0.1.2_linux_amd64.rpm
+sudo dnf install ./mediaconv_0.1.3_linux_amd64.rpm
 
 # Alpine
-sudo apk add --allow-untrusted ./mediaconv_0.1.2_linux_amd64.apk
+sudo apk add --allow-untrusted ./mediaconv_0.1.3_linux_amd64.apk
 ```
 
-Os nomes acima usam `0.1.2` como exemplo. Use sempre a versão mais recente da
+Os nomes acima usam `0.1.3` como exemplo. Use sempre a versão mais recente da
 página de release.
 
 ### Windows com Scoop
