@@ -68,6 +68,24 @@ goreleaser release --snapshot --clean --skip=publish,sign
 Não inclua vídeos grandes, material protegido ou dados pessoais nos testes. Prefira
 fixtures curtas, sintéticas e geradas de maneira reproduzível.
 
+## Demonstração em GIF
+
+O GIF exibido nos READMEs e no site é gerado a partir de um script versionado,
+não gravado à mão. Se você mudar a saída do CLI, regenere-o com
+[VHS](https://github.com/charmbracelet/vhs):
+
+```bash
+docs/demo/setup.sh
+vhs docs/demo/demo.tape
+```
+
+O `setup.sh` compila o CLI e gera as fixtures sintéticas em `/tmp/mediaconv-demo`;
+o `demo.tape` grava a sessão em `site/demo.gif`. A gravação não usa nenhuma mídia
+de terceiros: o vídeo é o padrão de teste do FFmpeg e o áudio é um tom senoidal.
+
+O VHS depende de `ttyd` e `ffmpeg` no `PATH`. O tape fixa o `PATH` da sessão
+gravada para que a saída do `doctor` fique igual entre máquinas.
+
 ## Commits e pull requests
 
 Use mensagens de commit curtas e no imperativo. O projeto adota prefixos no estilo

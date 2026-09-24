@@ -11,6 +11,11 @@
 MediaConv é um conversor de mídia por linha de comando, seguro e amigável a
 automações, baseado no FFmpeg.
 
+![MediaConv em um terminal: o doctor mostra todos os codecs necessários do
+FFmpeg como disponíveis, um arquivo WebM é convertido para MP4 com progresso ao
+vivo, uma segunda conversão se recusa a substituir a saída existente e uma pasta
+de arquivos WAV é convertida em lote para MP3.](site/demo.gif)
+
 Ele começa com um perfil bem resolvido: converter containers de vídeo comuns em
 MP4 amplamente compatível, usando vídeo H.264 e áudio AAC. O MediaConv valida a
 entrada, converte em uma área temporária privada, verifica o resultado e somente
