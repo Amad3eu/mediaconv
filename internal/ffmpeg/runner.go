@@ -80,21 +80,21 @@ func (r Runner) Run(ctx context.Context, plan media.Plan, temporaryOutput string
 }
 
 type tailBuffer struct {
-	data []byte
-	max  int
+	data  []byte
+	limit int
 }
 
-func newTailBuffer(max int) *tailBuffer {
-	return &tailBuffer{max: max}
+func newTailBuffer(limit int) *tailBuffer {
+	return &tailBuffer{limit: limit}
 }
 
 func (b *tailBuffer) Write(data []byte) (int, error) {
 	written := len(data)
-	if len(data) >= b.max {
-		b.data = append(b.data[:0], data[len(data)-b.max:]...)
+	if len(data) >= b.limit {
+		b.data = append(b.data[:0], data[len(data)-b.limit:]...)
 		return written, nil
 	}
-	if overflow := len(b.data) + len(data) - b.max; overflow > 0 {
+	if overflow := len(b.data) + len(data) - b.limit; overflow > 0 {
 		copy(b.data, b.data[overflow:])
 		b.data = b.data[:len(b.data)-overflow]
 	}

@@ -55,17 +55,17 @@ func (p Prober) Probe(ctx context.Context, path string) (media.Info, error) {
 
 type limitedBuffer struct {
 	data     []byte
-	max      int
+	limit    int
 	exceeded bool
 }
 
-func newLimitedBuffer(max int) *limitedBuffer {
-	return &limitedBuffer{max: max}
+func newLimitedBuffer(limit int) *limitedBuffer {
+	return &limitedBuffer{limit: limit}
 }
 
 func (b *limitedBuffer) Write(data []byte) (int, error) {
 	written := len(data)
-	remaining := b.max - len(b.data)
+	remaining := b.limit - len(b.data)
 	if remaining <= 0 {
 		b.exceeded = true
 		return written, nil

@@ -80,8 +80,8 @@ func TestCollectBatchCandidatesForMP3(t *testing.T) {
 func TestBatchOutputPathPreservesRelativePathAndChangesExtension(t *testing.T) {
 	t.Parallel()
 
-	inputDir := filepath.Join("media")
-	outputDir := filepath.Join("converted")
+	inputDir := "media"
+	outputDir := "converted"
 	inputPath := filepath.Join("media", "nested", "clip.webm")
 
 	got, err := batchOutputPath(inputDir, outputDir, inputPath, "mp4")
