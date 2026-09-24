@@ -9,6 +9,10 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Adicionado
 
+- Saída colorida no terminal: rótulos de status em verde, falhas em vermelho,
+  avisos em amarelo e dicas esmaecidas.
+- Opção global `--color` com os valores `auto`, `always` e `never`, além do
+  suporte à variável de ambiente `NO_COLOR`.
 - Demonstração em GIF do CLI no README, no README em português e no site,
   gerada de forma reproduzível pelo VHS a partir de `docs/demo/`.
 

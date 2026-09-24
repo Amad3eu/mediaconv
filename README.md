@@ -218,7 +218,7 @@ mediaconv completion bash|zsh|fish|powershell
 ```
 
 Use `mediaconv COMMAND --help` for the complete flags and examples. Global flags
-include `--json`, `--verbose`, `--ffmpeg-path`, and `--ffprobe-path`.
+include `--json`, `--verbose`, `--color`, `--ffmpeg-path`, and `--ffprobe-path`.
 
 ### JSON and exit codes
 
@@ -236,6 +236,17 @@ stderr is not a terminal.
 | 5 | Output conflict or publication failure |
 | 6 | Conversion or output verification failure |
 | 130 | Interrupted by the user |
+
+### Color
+
+Status labels are colored when the destination is a terminal, and never when it
+is a pipe or a file, so redirected output and `--json` stay byte for byte what
+they were before. The decision is made per stream, so redirecting only stdout
+keeps color on stderr.
+
+Override it with `--color auto|always|never`, or set
+[`NO_COLOR`](https://no-color.org) to any non-empty value to turn color off for
+every run. An explicit `--color always` wins over `NO_COLOR`.
 
 ## Supported conversions
 

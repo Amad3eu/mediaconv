@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -19,10 +20,19 @@ type options struct {
 	ffprobePath string
 	json        bool
 	verbose     bool
+	color       string
+	colorMode   colorMode
+}
+
+// paletteFor resolves color per stream, because stdout and stderr are not
+// always the same kind of destination: `mediaconv convert x.webm > out.txt`
+// still has a terminal on stderr.
+func (o *options) paletteFor(writer io.Writer) palette {
+	return newPalette(writer, o.colorMode, os.LookupEnv)
 }
 
 func Execute(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
-	opts := &options{}
+	opts := &options{colorMode: colorAuto}
 	root := newRootCommand(opts, stdin, stdout, stderr)
 	root.SetArgs(args)
 	root.SetContext(ctx)
@@ -33,7 +43,7 @@ func Execute(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 	}
 	code := failure.ExitCode(err)
 	if !failure.IsReported(err) {
-		writeError(stderr, err, code, opts.json, opts.verbose)
+		writeError(stderr, err, code, opts.json, opts.verbose, opts.paletteFor(stderr))
 	}
 	return code
 }
@@ -61,6 +71,16 @@ func newRootCommand(opts *options, stdin io.Reader, stdout, stderr io.Writer) *c
 	flags.StringVar(&opts.ffprobePath, "ffprobe-path", "", "Path to the ffprobe executable or its directory")
 	flags.BoolVar(&opts.json, "json", false, "Write machine-readable JSON")
 	flags.BoolVarP(&opts.verbose, "verbose", "v", false, "Include underlying diagnostic details")
+	flags.StringVar(&opts.color, "color", string(colorAuto), "Colorize output: auto, always, or never")
+
+	root.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
+		mode, err := parseColorMode(opts.color)
+		if err != nil {
+			return err
+		}
+		opts.colorMode = mode
+		return nil
+	}
 
 	root.AddCommand(
 		newConvertCommand(opts, stdout, stderr),
@@ -106,7 +126,7 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 				return err
 			}
 			progress.Clear()
-			return writeConvertResult(stdout, result, opts.json)
+			return writeConvertResult(stdout, result, opts.json, opts.paletteFor(stdout))
 		},
 	}
 	flags := command.Flags()
@@ -148,7 +168,7 @@ func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 			if err != nil && result.Total == 0 {
 				return err
 			}
-			if writeErr := writeBatchResult(stdout, result, opts.json); writeErr != nil {
+			if writeErr := writeBatchResult(stdout, result, opts.json, opts.paletteFor(stdout)); writeErr != nil {
 				return writeErr
 			}
 			if err != nil {
@@ -198,7 +218,7 @@ func newDoctorCommand(opts *options, stdout io.Writer) *cobra.Command {
 		RunE: func(command *cobra.Command, _ []string) error {
 			service := app.New(app.Config{FFmpegPath: opts.ffmpegPath, FFprobePath: opts.ffprobePath})
 			report := service.Doctor(command.Context())
-			if err := writeDoctorReport(stdout, report, opts.json); err != nil {
+			if err := writeDoctorReport(stdout, report, opts.json, opts.paletteFor(stdout)); err != nil {
 				return failure.Wrap(failure.Unexpected, "Could not write the doctor report.", err)
 			}
 			if !report.OK {
@@ -279,7 +299,7 @@ func exactArgs(expected int) cobra.PositionalArgs {
 	}
 }
 
-func writeError(writer io.Writer, err error, code int, asJSON, verbose bool) {
+func writeError(writer io.Writer, err error, code int, asJSON, verbose bool, pal palette) {
 	message, hint := failure.Details(err)
 	if asJSON {
 		_ = writeJSON(writer, map[string]any{
@@ -292,7 +312,15 @@ func writeError(writer io.Writer, err error, code int, asJSON, verbose bool) {
 		})
 		return
 	}
-	_, _ = fmt.Fprintf(writer, "Error: %s\n", failure.Format(err, verbose))
+	_, _ = fmt.Fprintf(writer, "%s %s\n", pal.failed("Error:"), message)
+	if hint != "" {
+		_, _ = fmt.Fprintf(writer, "%s %s\n", pal.muted("Hint:"), hint)
+	}
+	if verbose {
+		if detail := failure.Detail(err); detail != "" {
+			_, _ = fmt.Fprintf(writer, "%s %s\n", pal.muted("Details:"), detail)
+		}
+	}
 }
 
 func writeJSON(writer io.Writer, value any) error {
