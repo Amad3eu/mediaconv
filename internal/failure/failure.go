@@ -116,15 +116,27 @@ func IsReported(err error) bool {
 	return errors.As(err, &target)
 }
 
+// Detail returns the underlying diagnostic that --verbose reveals, or an empty
+// string when the cause says nothing the message has not already said.
+func Detail(err error) string {
+	var target *Error
+	if !errors.As(err, &target) || target.Err == nil {
+		return ""
+	}
+	if target.Err.Error() == target.Message {
+		return ""
+	}
+	return target.Err.Error()
+}
+
 func Format(err error, verbose bool) string {
 	message, hint := Details(err)
 	if hint != "" {
 		message += fmt.Sprintf("\nHint: %s", hint)
 	}
 	if verbose {
-		var target *Error
-		if errors.As(err, &target) && target.Err != nil && target.Err.Error() != target.Message {
-			message += fmt.Sprintf("\nDetails: %v", target.Err)
+		if detail := Detail(err); detail != "" {
+			message += fmt.Sprintf("\nDetails: %s", detail)
 		}
 	}
 	return message

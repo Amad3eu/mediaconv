@@ -169,3 +169,47 @@ func TestReportedMarksAnErrorWithoutChangingItsIdentity(t *testing.T) {
 		t.Error("Reported(nil) != nil")
 	}
 }
+
+func TestDetailReturnsTheCauseOnlyWhenItAddsSomething(t *testing.T) {
+	t.Parallel()
+
+	cause := errors.New("stat /tmp/x: no such file or directory")
+
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{name: "nil", err: nil, want: ""},
+		{
+			name: "not a failure error",
+			err:  errors.New("plain"),
+			want: "",
+		},
+		{
+			name: "no cause",
+			err:  New(Input, "The input file is empty.", "", nil),
+			want: "",
+		},
+		{
+			name: "cause repeats the message",
+			err:  New(Input, cause.Error(), "", cause),
+			want: "",
+		},
+		{
+			name: "cause adds detail",
+			err:  New(Input, "The input could not be read.", "", cause),
+			want: cause.Error(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := Detail(test.err); got != test.want {
+				t.Errorf("Detail() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
