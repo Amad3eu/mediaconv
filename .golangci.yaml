@@ -1,0 +1,117 @@
+# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  # The standard set is errcheck, govet, ineffassign, staticcheck, and unused.
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - durationcheck
+    - errorlint
+    - gocritic
+    - gosec
+    - misspell
+    - nilerr
+    - nolintlint
+    - predeclared
+    - revive
+    - unconvert
+    - unparam
+    - usetesting
+    - wastedassign
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+
+    govet:
+      enable-all: true
+      disable:
+        # Field alignment is a micro-optimization that hurts readability here.
+        - fieldalignment
+        # Shadowing err inside an if statement is idiomatic Go.
+        - shadow
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        # media.Info and media.Plan are passed by value on purpose: callers
+        # must not be able to mutate a probe result or a conversion plan.
+        - hugeParam
+        - rangeValCopy
+        - unnamedResult
+
+    gosec:
+      excludes:
+        # MediaConv runs FFmpeg with an argument array and never through a
+        # shell. Paths are validated in internal/app before any command runs,
+        # and the binary is located by internal/ffmpeg.
+        - G204
+      config:
+        # Batch output directories are created for the user to browse, so 0755
+        # is intended here. Converted files themselves are staged 0600 by
+        # internal/output before publication.
+        G301: "0755"
+
+    misspell:
+      locale: US
+
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: var-declaration
+        - name: var-naming
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      # Test helpers legitimately ignore errors and use fixed test data.
+      - path: _test\.go$
+        linters:
+          - gosec
+          - unparam
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Amad3eu/mediaconv

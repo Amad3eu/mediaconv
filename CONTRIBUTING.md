@@ -40,9 +40,22 @@ Antes de enviar uma mudança, rode:
 gofmt -w .
 go mod tidy
 go vet ./...
+golangci-lint run ./...
 go test -race ./...
 go build -trimpath ./cmd/mediaconv
 ```
+
+O `golangci-lint` é o mesmo check que roda na CI. A configuração está em
+[`.golangci.yaml`](.golangci.yaml) e a CI usa a versão `v2.14.0`. Para instalar a
+mesma versão localmente:
+
+```bash
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+```
+
+Se precisar silenciar um aviso, use `//nolint:<linter> // <motivo>` com o linter
+nomeado e a justificativa. A configuração recusa `nolint` genérico ou sem
+explicação.
 
 Se alterar o empacotamento, valide também a configuração com GoReleaser. A geração
 de SBOM exige o Syft instalado:
