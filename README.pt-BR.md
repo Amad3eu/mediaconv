@@ -219,7 +219,8 @@ mediaconv completion bash|zsh|fish|powershell
 ```
 
 Use `mediaconv COMANDO --help` para ver todas as opções e exemplos. As opções
-globais incluem `--json`, `--verbose`, `--ffmpeg-path` e `--ffprobe-path`.
+globais incluem `--json`, `--verbose`, `--color`, `--ffmpeg-path` e
+`--ffprobe-path`.
 
 ### JSON e códigos de saída
 
@@ -237,6 +238,17 @@ automaticamente quando stderr não é um terminal.
 | 5 | Conflito de saída ou falha na publicação |
 | 6 | Falha na conversão ou verificação da saída |
 | 130 | Interrompido pelo usuário |
+
+### Cores
+
+Os rótulos de status são coloridos quando o destino é um terminal, e nunca
+quando é um pipe ou arquivo, de modo que saída redirecionada e `--json`
+permanecem byte a byte como eram antes. A decisão é tomada por fluxo, então
+redirecionar apenas o stdout mantém a cor no stderr.
+
+Use `--color auto|always|never` para forçar o comportamento, ou defina
+[`NO_COLOR`](https://no-color.org) com qualquer valor não vazio para desligar a
+cor em todas as execuções. Um `--color always` explícito vence o `NO_COLOR`.
 
 ## Conversões suportadas
 
