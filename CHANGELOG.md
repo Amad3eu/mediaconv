@@ -7,6 +7,16 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado
+
+- Demonstração em GIF do CLI no README, no README em português e no site,
+  gerada de forma reproduzível pelo VHS a partir de `docs/demo/`.
+
+### Alterado
+
+- O site passa a exibir a gravação real do terminal no lugar do bloco de
+  exemplo estático, que já não refletia a saída atual do CLI.
+
 ## [0.4.0] - 2026-09-08
 
 ### Adicionado

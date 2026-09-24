@@ -206,6 +206,12 @@ h3 {
   background: #34d399;
 }
 
+.terminal-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 pre {
   overflow-x: auto;
   margin: 0;
