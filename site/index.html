@@ -45,21 +45,21 @@
           </div>
         </div>
 
-        <section class="terminal-card" aria-label="Terminal example">
+        <section class="terminal-card" aria-label="Terminal recording">
           <div class="terminal-top">
             <span></span>
             <span></span>
             <span></span>
           </div>
-          <pre><code>$ mediaconv doctor
-OK  ffmpeg   available
-OK  ffprobe  available
-OK  libx264  available
-OK  libmp3lame available
-
-$ mediaconv convert "song.wav" --to mp3
-output: song.mp3
-status: converted and verified</code></pre>
+          <img
+            src="./demo.gif"
+            width="1280"
+            height="440"
+            alt="MediaConv in a terminal: doctor reports every required FFmpeg
+              codec as available, a WebM file is converted to MP4 with live
+              progress, a second conversion refuses to replace the existing
+              output, and a folder of WAV files is batch converted to MP3."
+          >
         </section>
       </section>
     </header>
