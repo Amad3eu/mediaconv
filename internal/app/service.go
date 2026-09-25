@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Amad3eu/mediaconv/internal/failure"
@@ -25,10 +26,45 @@ type Config struct {
 
 type Service struct {
 	config Config
+
+	ffmpegOnce   sync.Once
+	ffmpegPaths  ffmpeg.Paths
+	capabilities media.Capabilities
+	ffmpegErr    error
 }
 
 func New(config Config) *Service {
 	return &Service{config: config}
+}
+
+// resolveFFmpeg locates FFmpeg and reads its capabilities once per service.
+//
+// Detection costs four subprocesses, and a batch converts every file with the
+// same FFmpeg, so repeating it per file dominated the runtime for folders of
+// small inputs. The result is cached for the life of the service, which is one
+// command invocation: the installed FFmpeg does not change underneath a
+// running conversion.
+func (s *Service) resolveFFmpeg(ctx context.Context) (ffmpeg.Paths, media.Capabilities, error) {
+	s.ffmpegOnce.Do(func() {
+		paths, err := (ffmpeg.Locator{}).Locate(s.config.FFmpegPath, s.config.FFprobePath)
+		if err != nil {
+			s.ffmpegErr = failure.New(
+				failure.Dependency,
+				"FFmpeg and ffprobe are required but could not be located.",
+				"Install FFmpeg, run 'mediaconv doctor', or provide --ffmpeg-path and --ffprobe-path.",
+				err,
+			)
+			return
+		}
+		capabilities, err := (ffmpeg.CapabilityDetector{}).Detect(ctx, paths)
+		if err != nil {
+			s.ffmpegErr = dependencyOrInterrupted(ctx, "Could not inspect the installed FFmpeg.", err)
+			return
+		}
+		s.ffmpegPaths = paths
+		s.capabilities = capabilities
+	})
+	return s.ffmpegPaths, s.capabilities, s.ffmpegErr
 }
 
 type ConvertRequest struct {
@@ -89,18 +125,9 @@ func (s *Service) Convert(ctx context.Context, request ConvertRequest, sink func
 		return ConvertResult{}, err
 	}
 
-	paths, err := (ffmpeg.Locator{}).Locate(s.config.FFmpegPath, s.config.FFprobePath)
+	paths, capabilities, err := s.resolveFFmpeg(ctx)
 	if err != nil {
-		return ConvertResult{}, failure.New(
-			failure.Dependency,
-			"FFmpeg and ffprobe are required but could not be located.",
-			"Install FFmpeg, run 'mediaconv doctor', or provide --ffmpeg-path and --ffprobe-path.",
-			err,
-		)
-	}
-	capabilities, err := (ffmpeg.CapabilityDetector{}).Detect(ctx, paths)
-	if err != nil {
-		return ConvertResult{}, dependencyOrInterrupted(ctx, "Could not inspect the installed FFmpeg.", err)
+		return ConvertResult{}, err
 	}
 
 	prober := ffmpeg.Prober{Binary: paths.FFprobe}

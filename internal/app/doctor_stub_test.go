@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -14,6 +15,10 @@ import (
 // The value is "<encoders>;<muxers>", each a comma-separated list.
 const stubEnvVar = "MEDIACONV_TEST_FFMPEG_STUB"
 
+// stubLogEnvVar, when set, makes the stub append one line per invocation so a
+// test can count how many subprocesses the code under test actually spawned.
+const stubLogEnvVar = "MEDIACONV_TEST_FFMPEG_STUB_LOG"
+
 func TestMain(m *testing.M) {
 	if script, ok := os.LookupEnv(stubEnvVar); ok {
 		os.Exit(runFFmpegStub(script, os.Args[1:]))
@@ -22,6 +27,13 @@ func TestMain(m *testing.M) {
 }
 
 func runFFmpegStub(script string, args []string) int {
+	if path := os.Getenv(stubLogEnvVar); path != "" {
+		if file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600); err == nil {
+			fmt.Fprintln(file, strings.Join(args, " "))
+			_ = file.Close()
+		}
+	}
+
 	encoders, muxers, _ := strings.Cut(script, ";")
 
 	switch {
@@ -133,5 +145,32 @@ func TestDoctorAcceptsTheMovMuxerForMP4(t *testing.T) {
 		if check.Name == "MP4 muxer" && !check.OK {
 			t.Error("MP4 muxer check failed although the mov muxer is available")
 		}
+	}
+}
+
+// Detection costs four subprocesses. Repeating it per file is what made batch
+// runs over folders of small inputs spend most of their time not converting.
+func TestResolveFFmpegDetectsCapabilitiesOnlyOnce(t *testing.T) {
+	spawnLog := filepath.Join(t.TempDir(), "spawns.log")
+	t.Setenv(stubLogEnvVar, spawnLog)
+	service := stubbedService(t, "libx264,aac,libmp3lame", "mp4,mp3")
+
+	for attempt := 1; attempt <= 3; attempt++ {
+		_, capabilities, err := service.resolveFFmpeg(context.Background())
+		if err != nil {
+			t.Fatalf("resolveFFmpeg() attempt %d error = %v", attempt, err)
+		}
+		if !capabilities.HasEncoder("libx264") {
+			t.Fatalf("attempt %d lost the detected capabilities", attempt)
+		}
+	}
+
+	recorded, err := os.ReadFile(spawnLog)
+	if err != nil {
+		t.Fatalf("read spawn log: %v", err)
+	}
+	spawns := strings.Count(string(recorded), "\n")
+	if spawns != 4 {
+		t.Errorf("three calls spawned %d subprocesses, want the 4 of a single detection:\n%s", spawns, recorded)
 	}
 }
