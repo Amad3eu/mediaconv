@@ -9,6 +9,9 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Adicionado
 
+- Opção `--jobs` (`-j`) no comando `batch`, para converter vários arquivos ao
+  mesmo tempo. Os resultados continuam sendo reportados na ordem da varredura,
+  independentemente da concorrência.
 - Saída colorida no terminal: rótulos de status em verde, falhas em vermelho,
   avisos em amarelo e dicas esmaecidas.
 - Opção global `--color` com os valores `auto`, `always` e `never`, além do
