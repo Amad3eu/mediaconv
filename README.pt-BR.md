@@ -1,4 +1,4 @@
-# MediaConv
+# ![MediaConv — conversor de mídia por linha de comando](site/brand/banner.png)
 
 [English](README.md) · [Português (Brasil)](README.pt-BR.md)
 
