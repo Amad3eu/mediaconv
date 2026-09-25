@@ -210,7 +210,7 @@ O desenvolvimento exige Go 1.26 ou mais recente.
 
 ```text
 mediaconv convert INPUT [--to mp4|mp3] [-o SAÍDA] [--preset web|music] [--overwrite]
-mediaconv batch DIRETÓRIO [--to mp4|mp3] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite]
+mediaconv batch DIRETÓRIO [--to mp4|mp3] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -238,6 +238,24 @@ automaticamente quando stderr não é um terminal.
 | 5 | Conflito de saída ou falha na publicação |
 | 6 | Falha na conversão ou verificação da saída |
 | 130 | Interrompido pelo usuário |
+
+### Concorrência em lote
+
+O `batch` converte um arquivo por vez por padrão. Use `--jobs N` (`-j`) para
+converter vários de uma vez:
+
+```bash
+mediaconv batch "./gravacoes" --to mp3 --jobs 4
+```
+
+Os resultados são sempre reportados na ordem em que a varredura encontrou os
+arquivos, então uma execução concorrente imprime e serializa exatamente o mesmo
+que uma sequencial.
+
+O FFmpeg já usa várias threads por conversão, então a faixa útil é menor que a
+quantidade de núcleos: o ganho costuma estabilizar com poucos jobs e, além
+disso, as conversões apenas disputam os mesmos núcleos. Comece por volta de
+quatro e meça. O valor é limitado à quantidade de arquivos encontrados.
 
 ### Cores
 
@@ -294,7 +312,6 @@ discos removíveis ou compartilhamentos de rede.
 
 - Perfis adicionais, como MP4 para WebM e prévias em GIF.
 - Perfis de saída de áudio, como AAC e WAV.
-- Controle de concorrência em lote para pastas maiores.
 - Repositórios nativos para `apt`, `dnf` e `apk`.
 - Aceleração por hardware após a criação de testes específicos por capacidade.
 

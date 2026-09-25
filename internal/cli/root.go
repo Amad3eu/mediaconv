@@ -145,6 +145,7 @@ func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 		preset    string
 		overwrite bool
 		recursive bool
+		jobs      int
 	)
 	command := &cobra.Command{
 		Use:   "batch DIRECTORY",
@@ -154,6 +155,7 @@ func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 			"mediaconv batch ./recordings --to mp4",
 			"mediaconv batch ./audio --to mp3 --output-dir ./converted",
 			"mediaconv batch ./media --to mp4 --recursive --overwrite",
+			"mediaconv batch ./recordings --to mp4 --jobs 4",
 		}, "\n"),
 		RunE: func(command *cobra.Command, args []string) error {
 			service := app.New(app.Config{FFmpegPath: opts.ffmpegPath, FFprobePath: opts.ffprobePath})
@@ -164,6 +166,7 @@ func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 				Preset:    preset,
 				Overwrite: overwrite,
 				Recursive: recursive,
+				Jobs:      jobs,
 			})
 			if err != nil && result.Total == 0 {
 				return err
@@ -191,6 +194,7 @@ func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 	flags.StringVar(&preset, "preset", "", "Conversion profile (default: web for MP4, music for MP3)")
 	flags.BoolVar(&overwrite, "overwrite", false, "Replace existing regular output files")
 	flags.BoolVarP(&recursive, "recursive", "r", false, "Scan subdirectories recursively")
+	flags.IntVarP(&jobs, "jobs", "j", 1, "Convert this many files at once")
 	return command
 }
 

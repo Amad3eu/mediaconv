@@ -78,6 +78,9 @@ mediaconv convert "song.wav" --to mp3
 # Convert a whole directory.
 mediaconv batch "./recordings" --to mp4 --output-dir "./converted"
 
+# Convert four files at a time.
+mediaconv batch "./recordings" --to mp4 --jobs 4
+
 # Select an output and explicitly allow replacement.
 mediaconv convert "recording.webm" \
   --output "exports/recording.mp4" \
@@ -209,7 +212,7 @@ Development requires Go 1.26 or newer.
 
 ```text
 mediaconv convert INPUT [--to mp4|mp3] [-o OUTPUT] [--preset web|music] [--overwrite]
-mediaconv batch DIRECTORY [--to mp4|mp3] [-o OUTPUT_DIR] [--recursive] [--overwrite]
+mediaconv batch DIRECTORY [--to mp4|mp3] [-o OUTPUT_DIR] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -236,6 +239,23 @@ stderr is not a terminal.
 | 5 | Output conflict or publication failure |
 | 6 | Conversion or output verification failure |
 | 130 | Interrupted by the user |
+
+### Batch concurrency
+
+`batch` converts one file at a time by default. Pass `--jobs N` (`-j`) to
+convert several at once:
+
+```bash
+mediaconv batch "./recordings" --to mp3 --jobs 4
+```
+
+Results are always reported in the input order the scan produced, so a
+concurrent run prints and serializes exactly what a sequential one would.
+
+FFmpeg already uses several threads per conversion, so the useful range is
+smaller than the core count: throughput usually flattens a few jobs in, and
+past that the conversions only compete for the same cores. Start around four
+and measure. The value is capped at the number of files found.
 
 ### Color
 
@@ -292,7 +312,6 @@ filesystems, but may not be available on some removable or network filesystems.
 
 - Additional profiles such as MP4 to WebM and GIF previews.
 - Audio output profiles such as AAC and WAV.
-- Batch concurrency controls for larger folders.
 - Native package repositories for `apt`, `dnf`, and `apk`.
 - Optional hardware acceleration after capability-specific tests are available.
 
