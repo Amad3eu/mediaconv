@@ -18,6 +18,9 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Alterado
 
+- As capacidades do FFmpeg passam a ser detectadas uma única vez por execução,
+  e não uma vez por arquivo. Em um lote de 20 arquivos curtos isso eliminou 76
+  dos 80 processos de detecção e reduziu o tempo total pela metade.
 - O site passa a exibir a gravação real do terminal no lugar do bloco de
   exemplo estático, que já não refletia a saída atual do CLI.
 
