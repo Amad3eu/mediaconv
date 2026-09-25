@@ -9,6 +9,10 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Adicionado
 
+- Identidade visual: símbolo, banner, favicon e ícone de tela inicial, com as
+  cores documentadas em `docs/BRAND.md`.
+- Metatags Open Graph e Twitter no site, para que links compartilhados exibam o
+  banner.
 - Opção `--jobs` (`-j`) no comando `batch`, para converter vários arquivos ao
   mesmo tempo. Os resultados continuam sendo reportados na ordem da varredura,
   independentemente da concorrência.

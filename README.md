@@ -1,4 +1,4 @@
-# MediaConv
+# ![MediaConv — Safe command-line media converter](site/brand/banner.png)
 
 [English](README.md) · [Português (Brasil)](README.pt-BR.md)
 
