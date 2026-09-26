@@ -7,6 +7,8 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [0.5.0] - 2026-09-26
+
 ### Adicionado
 
 - Identidade visual: símbolo, banner, favicon e ícone de tela inicial, com as
@@ -106,7 +108,8 @@ ser instalado separadamente; use `mediaconv doctor` para conferir a instalação
 - Releases automatizadas com binários, checksums, SBOMs, assinatura keyless e
   atestados de proveniência.
 
-[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.4.0...HEAD
+[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Amad3eu/mediaconv/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Amad3eu/mediaconv/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Amad3eu/mediaconv/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Amad3eu/mediaconv/compare/v0.1.3...v0.2.0
