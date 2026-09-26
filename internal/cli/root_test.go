@@ -328,3 +328,18 @@ func decodeJSON(t *testing.T, value string, target any) {
 		t.Fatalf("JSON contains additional values: %q", value)
 	}
 }
+
+// The help text is generated from the registry, so a format added there must
+// show up in --help without anyone remembering to edit a string.
+func TestFlagHelpListsEveryTarget(t *testing.T) {
+	_, stdout, _ := executeForTest(t, "convert", "--help")
+
+	for _, target := range (profile.Registry{}).Targets() {
+		if !strings.Contains(stdout, target.Name) {
+			t.Errorf("--to help does not mention target %q\noutput:\n%s", target.Name, stdout)
+		}
+		if !strings.Contains(stdout, target.DefaultPreset) {
+			t.Errorf("--preset help does not mention default preset %q\noutput:\n%s", target.DefaultPreset, stdout)
+		}
+	}
+}
