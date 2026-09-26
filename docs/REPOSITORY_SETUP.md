@@ -7,7 +7,12 @@ aplicadas somente pelos arquivos versionados.
 
 - Defina `main` como branch padrão.
 - Habilite squash merge e use o título do pull request como mensagem do commit.
-- Desabilite merge commits para manter histórico linear.
+- Habilite também rebase merge, e escolha por pull request: squash quando os
+  commits da branch forem rascunho, rebase quando cada commit for atômico e
+  valer a pena preservá-lo para `git bisect`. Os dois preservam histórico
+  linear.
+- Desabilite merge commits, que são o único método que quebra o histórico
+  linear.
 - Habilite a exclusão automática de branches depois do merge.
 - Adicione os tópicos `cli`, `go`, `ffmpeg`, `video-converter`, `webm` e `mp4`.
 
