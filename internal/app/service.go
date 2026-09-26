@@ -461,12 +461,24 @@ func resolveInputDir(input string) (string, error) {
 func normalizeTarget(target string) (string, error) {
 	target = strings.ToLower(strings.TrimSpace(target))
 	if target == "" {
-		target = "mp4"
+		target = defaultTarget
 	}
-	if target != "mp4" && target != "mp3" {
-		return "", failure.New(failure.Usage, fmt.Sprintf("Unsupported target format %q.", target), "Run 'mediaconv formats' to list supported conversions.", nil)
+	if _, ok := (profile.Registry{}).Target(target); !ok {
+		return "", unsupportedTarget(target)
 	}
 	return target, nil
+}
+
+// defaultTarget is what --to falls back to when it is not given.
+const defaultTarget = "mp4"
+
+func unsupportedTarget(target string) error {
+	return failure.New(
+		failure.Usage,
+		fmt.Sprintf("Unsupported target format %q.", target),
+		fmt.Sprintf("Supported formats are %s. Run 'mediaconv formats' to list the conversions.", strings.Join((profile.Registry{}).TargetNames(), ", ")),
+		nil,
+	)
 }
 
 func resolveBatchOutputDir(inputDir, requested string) (string, error) {
@@ -517,12 +529,15 @@ func collectBatchCandidates(root, target string, recursive bool) ([]string, erro
 }
 
 func batchInputExtensions(target string) map[string]bool {
-	switch target {
-	case "mp3":
-		return map[string]bool{".wav": true, ".flac": true, ".m4a": true, ".m4b": true, ".aac": true, ".ogg": true, ".oga": true, ".opus": true}
-	default:
-		return map[string]bool{".webm": true, ".mov": true, ".qt": true, ".mkv": true, ".avi": true, ".m4v": true}
+	found, ok := (profile.Registry{}).Target(target)
+	if !ok {
+		return nil
 	}
+	extensions := make(map[string]bool, len(found.BatchExtensions))
+	for _, extension := range found.BatchExtensions {
+		extensions[extension] = true
+	}
+	return extensions
 }
 
 func batchOutputPath(inputDir, outputDir, inputPath, target string) (string, error) {
@@ -587,10 +602,10 @@ func resolveInput(input string) (string, os.FileInfo, error) {
 func resolveOutput(inputPath string, inputInfo os.FileInfo, requested, target string, overwrite bool) (string, error) {
 	target = strings.ToLower(strings.TrimSpace(target))
 	if target == "" {
-		target = "mp4"
+		target = defaultTarget
 	}
-	if target != "mp4" && target != "mp3" {
-		return "", failure.New(failure.Usage, fmt.Sprintf("Unsupported target format %q.", target), "Run 'mediaconv formats' to list supported conversions.", nil)
+	if _, ok := (profile.Registry{}).Target(target); !ok {
+		return "", unsupportedTarget(target)
 	}
 
 	outputPath := requested

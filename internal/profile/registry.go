@@ -20,6 +20,59 @@ var (
 
 type Registry struct{}
 
+// Target is an output format the registry can plan for. It is the single
+// source of truth: internal/app asks here instead of keeping its own copy of
+// the list, so adding a format stays inside this package, as ADR 0003 intends.
+type Target struct {
+	Name          string
+	DefaultPreset string
+	// BatchExtensions are the input extensions `mediaconv batch` picks up for
+	// this target. The target's own extension is deliberately absent, so a
+	// batch never converts a file onto itself. A single `convert` is less
+	// restrictive: re-encoding an MP4 to MP4 is a legitimate request.
+	BatchExtensions []string
+}
+
+var targets = []Target{
+	{
+		Name:            "mp4",
+		DefaultPreset:   "web",
+		BatchExtensions: []string{".webm", ".mov", ".qt", ".mkv", ".avi", ".m4v"},
+	},
+	{
+		Name:            "mp3",
+		DefaultPreset:   "music",
+		BatchExtensions: []string{".wav", ".flac", ".m4a", ".m4b", ".aac", ".ogg", ".oga", ".opus"},
+	},
+}
+
+// Targets lists every supported output format.
+func (Registry) Targets() []Target {
+	out := make([]Target, len(targets))
+	copy(out, targets)
+	return out
+}
+
+// Target looks up one output format by name.
+func (Registry) Target(name string) (Target, bool) {
+	name = strings.ToLower(strings.TrimSpace(name))
+	for _, target := range targets {
+		if target.Name == name {
+			return target, true
+		}
+	}
+	return Target{}, false
+}
+
+// TargetNames lists the supported output formats, for error messages.
+func (Registry) TargetNames() []string {
+	names := make([]string, 0, len(targets))
+	for _, target := range targets {
+		names = append(names, target.Name)
+	}
+	return names
+}
+
 type SupportedFormat struct {
 	Source      string `json:"source"`
 	Target      string `json:"target"`
@@ -295,12 +348,10 @@ func hasFormat(formats []string, target string) bool {
 }
 
 func defaultPreset(target string) string {
-	switch target {
-	case "mp3":
-		return "music"
-	default:
-		return "web"
+	if found, ok := (Registry{}).Target(target); ok {
+		return found.DefaultPreset
 	}
+	return "web"
 }
 
 func supportedVideoSource(inputPath string, formats []string) (string, bool) {
