@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -432,4 +433,56 @@ func countArgument(args []string, target string) int {
 		}
 	}
 	return count
+}
+
+// VP9 needs different flags from libx264 for the same intent: -b:v 0 to read
+// -crf as constant quality instead of a ceiling, -deadline rather than
+// -preset, and -row-mt to use more than one core. Passing libx264's spelling
+// to libvpx-vp9 makes FFmpeg fail, so this is worth pinning.
+func TestBuildArgsTranslatesQualityPerEncoder(t *testing.T) {
+	t.Parallel()
+
+	base := media.Plan{
+		InputPath:    "in.mp4",
+		TargetFormat: "webm",
+		VideoMap:     "0:v:0",
+		Video: &media.VideoSettings{
+			Codec:       "libvpx-vp9",
+			CRF:         32,
+			Preset:      "good",
+			PixelFormat: "yuv420p",
+		},
+	}
+
+	args := BuildArgs(base, "out.webm")
+	joined := strings.Join(args, " ")
+
+	for _, want := range []string{
+		"-c:v libvpx-vp9",
+		"-b:v 0",
+		"-crf 32",
+		"-deadline good",
+		"-row-mt 1",
+		"-pix_fmt yuv420p",
+		"-f webm",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("VP9 args missing %q\ngot: %s", want, joined)
+		}
+	}
+	if strings.Contains(joined, "-preset") {
+		t.Errorf("VP9 args carry -preset, which libvpx-vp9 rejects\ngot: %s", joined)
+	}
+
+	base.Video.Codec = "libx264"
+	base.Video.Preset = "medium"
+	base.TargetFormat = "mp4"
+	joined = strings.Join(BuildArgs(base, "out.mp4"), " ")
+
+	if !strings.Contains(joined, "-preset medium") {
+		t.Errorf("libx264 args lost -preset\ngot: %s", joined)
+	}
+	if strings.Contains(joined, "-b:v 0") || strings.Contains(joined, "-row-mt") {
+		t.Errorf("libx264 args picked up VP9 only flags\ngot: %s", joined)
+	}
 }

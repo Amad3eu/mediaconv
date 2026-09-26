@@ -21,8 +21,9 @@ MP4 amplamente compatível, usando vídeo H.264 e áudio AAC. O MediaConv valida
 entrada, converte em uma área temporária privada, verifica o resultado e somente
 então publica a saída.
 
-Ele também inclui o perfil `music`, para converter arquivos de áudio comuns para
-MP3 portátil usando libmp3lame.
+Ele também inclui o perfil `stream`, para converter vídeo em WebM livre de
+royalties com VP9 e Opus, e o perfil `music`, para converter arquivos de áudio
+comuns para MP3 portátil usando libmp3lame.
 
 > [!NOTE]
 > O MediaConv está em desenvolvimento inicial. Até a v1.0, comandos e opções
@@ -209,8 +210,8 @@ O desenvolvimento exige Go 1.26 ou mais recente.
 ## Comandos
 
 ```text
-mediaconv convert INPUT [--to mp4|mp3] [-o SAÍDA] [--preset web|music] [--overwrite]
-mediaconv batch DIRETÓRIO [--to mp4|mp3] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
+mediaconv convert INPUT [--to mp4|webm|mp3] [-o SAÍDA] [--preset web|stream|music] [--overwrite]
+mediaconv batch DIRETÓRIO [--to mp4|webm|mp3] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -310,7 +311,7 @@ discos removíveis ou compartilhamentos de rede.
 
 ## Próximos passos
 
-- Perfis adicionais, como MP4 para WebM e prévias em GIF.
+- Perfis adicionais, como prévias em GIF.
 - Perfis de saída de áudio, como AAC e WAV.
 - Repositórios nativos para `apt`, `dnf` e `apk`.
 - Aceleração por hardware após a criação de testes específicos por capacidade.

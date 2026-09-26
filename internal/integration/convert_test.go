@@ -100,6 +100,81 @@ func TestConvertMOVToMP4(t *testing.T) {
 	assertNoStagingDirectories(t, directory)
 }
 
+// The counterpart of TestConvertVP9OpusWebMToMP4: MP4 in, WebM out. VP9 takes
+// different flags from libx264 for the same intent, so this proves the adapter
+// translates them into something FFmpeg actually accepts.
+func TestConvertMOVToWebM(t *testing.T) {
+	requireFFmpeg(t)
+	directory := t.TempDir()
+	input := filepath.Join(directory, "camera.mov")
+	output := filepath.Join(directory, "camera.webm")
+	generateMOV(t, input)
+
+	result, err := app.New(app.Config{}).Convert(context.Background(), app.ConvertRequest{
+		InputPath:  input,
+		OutputPath: output,
+		Target:     "webm",
+	}, nil)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+
+	if result.Plan.Profile != "stream" {
+		t.Errorf("Profile = %q, want stream", result.Plan.Profile)
+	}
+	videos := result.OutputInfo.VideoStreams()
+	if len(videos) == 0 || videos[0].CodecName != "vp9" {
+		t.Fatalf("video codec = %+v, want vp9", videos)
+	}
+	if !hasFormatName(result.OutputInfo.FormatNames, "webm") {
+		t.Errorf("format names = %v, want a webm container", result.OutputInfo.FormatNames)
+	}
+	assertNoStagingDirectories(t, directory)
+}
+
+// A round trip has to survive both directions, because each one re-encodes.
+func TestRoundTripWebMToMP4AndBack(t *testing.T) {
+	requireFFmpeg(t)
+	directory := t.TempDir()
+	original := filepath.Join(directory, "original.webm")
+	asMP4 := filepath.Join(directory, "step.mp4")
+	backToWebM := filepath.Join(directory, "back.webm")
+	generateWebM(t, original, true, "0.5")
+
+	service := app.New(app.Config{})
+	if _, err := service.Convert(context.Background(), app.ConvertRequest{
+		InputPath: original, OutputPath: asMP4, Target: "mp4",
+	}, nil); err != nil {
+		t.Fatalf("webm to mp4 error = %v", err)
+	}
+
+	result, err := service.Convert(context.Background(), app.ConvertRequest{
+		InputPath: asMP4, OutputPath: backToWebM, Target: "webm",
+	}, nil)
+	if err != nil {
+		t.Fatalf("mp4 back to webm error = %v", err)
+	}
+
+	videos := result.OutputInfo.VideoStreams()
+	if len(videos) == 0 || videos[0].CodecName != "vp9" {
+		t.Fatalf("video codec = %+v, want vp9", videos)
+	}
+	audios := result.OutputInfo.AudioStreams()
+	if len(audios) == 0 || audios[0].CodecName != "opus" {
+		t.Fatalf("audio codec = %+v, want opus", audios)
+	}
+	assertNoStagingDirectories(t, directory)
+}
+
+func hasFormatName(names []string, want string) bool {
+	for _, name := range names {
+		if name == want {
+			return true
+		}
+	}
+	return false
+}
+
 func TestConvertWAVToMP3(t *testing.T) {
 	requireFFmpeg(t)
 	directory := t.TempDir()

@@ -2,6 +2,7 @@ package profile
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -13,27 +14,36 @@ import (
 func TestRegistryFormats(t *testing.T) {
 	t.Parallel()
 
-	got := (Registry{}).Formats()
-	want := []SupportedFormat{
-		{Source: "webm", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
-		{Source: "mov", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
-		{Source: "qt", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
-		{Source: "mkv", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
-		{Source: "avi", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
-		{Source: "mp4", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
-		{Source: "m4v", Target: "mp4", Profile: "web", VideoCodec: "h264 (libx264)", AudioCodec: "aac", Description: "Broadly compatible MP4 for browsers and media players"},
-		{Source: "wav", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
-		{Source: "flac", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
-		{Source: "m4a", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
-		{Source: "m4b", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
-		{Source: "aac", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
-		{Source: "ogg", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
-		{Source: "oga", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
-		{Source: "opus", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
-		{Source: "mp3", Target: "mp3", Profile: "music", VideoCodec: "none", AudioCodec: "mp3 (libmp3lame)", Description: "Portable MP3 audio for music players and sharing"},
+	// Compared as "source->target (profile)" strings rather than as whole
+	// structs: adding a format should be a one line change here, and a
+	// mismatch should be readable instead of a wall of %#v.
+	got := make([]string, 0)
+	for _, format := range (Registry{}).Formats() {
+		got = append(got, fmt.Sprintf("%s->%s (%s)", format.Source, format.Target, format.Profile))
+	}
+
+	want := []string{
+		"webm->mp4 (web)", "mov->mp4 (web)", "qt->mp4 (web)", "mkv->mp4 (web)",
+		"avi->mp4 (web)", "mp4->mp4 (web)", "m4v->mp4 (web)",
+
+		"mp4->webm (stream)", "m4v->webm (stream)", "mov->webm (stream)",
+		"qt->webm (stream)", "mkv->webm (stream)", "avi->webm (stream)",
+		"webm->webm (stream)",
+
+		"wav->mp3 (music)", "flac->mp3 (music)", "m4a->mp3 (music)",
+		"m4b->mp3 (music)", "aac->mp3 (music)", "ogg->mp3 (music)",
+		"oga->mp3 (music)", "opus->mp3 (music)", "mp3->mp3 (music)",
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Formats() = %#v, want %#v", got, want)
+		t.Errorf("Formats() =\n  %s\nwant\n  %s", strings.Join(got, "\n  "), strings.Join(want, "\n  "))
+	}
+
+	// The codec and description columns are what `mediaconv formats` prints,
+	// so no row may ship empty.
+	for _, format := range (Registry{}).Formats() {
+		if format.VideoCodec == "" || format.AudioCodec == "" || format.Description == "" {
+			t.Errorf("format %s->%s has an empty column: %+v", format.Source, format.Target, format)
+		}
 	}
 }
 

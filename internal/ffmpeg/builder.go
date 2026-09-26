@@ -29,12 +29,9 @@ func BuildArgs(plan media.Plan, temporaryOutput string) []string {
 
 	args = append(args, "-sn", "-dn")
 	if plan.Video != nil {
-		args = append(args,
-			"-c:v", plan.Video.Codec,
-			"-crf", strconv.Itoa(plan.Video.CRF),
-			"-preset", plan.Video.Preset,
-			"-pix_fmt", plan.Video.PixelFormat,
-		)
+		args = append(args, "-c:v", plan.Video.Codec)
+		args = append(args, videoQualityArgs(plan.Video)...)
+		args = append(args, "-pix_fmt", plan.Video.PixelFormat)
 		if len(plan.Video.Filters) > 0 {
 			args = append(args, "-vf", strings.Join(plan.Video.Filters, ","))
 		}
@@ -58,4 +55,28 @@ func BuildArgs(plan media.Plan, temporaryOutput string) []string {
 	}
 
 	return append(args, "-f", plan.TargetFormat, temporaryOutput)
+}
+
+// videoQualityArgs maps the plan's quality intent onto the flags the chosen
+// encoder actually understands. The profile says "constant quality at this CRF,
+// at this speed"; translating that is the adapter's job, per ADR 0003.
+//
+// libx264 reads -crf on its own and calls its speed control -preset. libvpx-vp9
+// treats -crf as a ceiling unless -b:v 0 puts it in constant quality mode, calls
+// the same control -deadline, and stays single threaded without -row-mt.
+func videoQualityArgs(video *media.VideoSettings) []string {
+	switch video.Codec {
+	case "libvpx-vp9":
+		return []string{
+			"-b:v", "0",
+			"-crf", strconv.Itoa(video.CRF),
+			"-deadline", video.Preset,
+			"-row-mt", "1",
+		}
+	default:
+		return []string{
+			"-crf", strconv.Itoa(video.CRF),
+			"-preset", video.Preset,
+		}
+	}
 }
