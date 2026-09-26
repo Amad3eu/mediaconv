@@ -13,6 +13,7 @@ import (
 	"github.com/Amad3eu/mediaconv/internal/app"
 	"github.com/Amad3eu/mediaconv/internal/buildinfo"
 	"github.com/Amad3eu/mediaconv/internal/failure"
+	"github.com/Amad3eu/mediaconv/internal/profile"
 )
 
 type options struct {
@@ -131,8 +132,8 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 	}
 	flags := command.Flags()
 	flags.StringVarP(&outputPath, "output", "o", "", "Output path (default: INPUT with an .mp4 extension)")
-	flags.StringVar(&target, "to", "mp4", "Target format")
-	flags.StringVar(&preset, "preset", "", "Conversion profile (default: web for MP4, music for MP3)")
+	flags.StringVar(&target, "to", "mp4", targetFlagUsage())
+	flags.StringVar(&preset, "preset", "", presetFlagUsage())
 	flags.BoolVar(&overwrite, "overwrite", false, "Replace an existing regular output file")
 	flags.BoolVar(&noProgress, "no-progress", false, "Disable interactive progress output")
 	return command
@@ -190,8 +191,8 @@ func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 	}
 	flags := command.Flags()
 	flags.StringVarP(&outputDir, "output-dir", "o", "", "Output directory (default: input directory)")
-	flags.StringVar(&target, "to", "mp4", "Target format")
-	flags.StringVar(&preset, "preset", "", "Conversion profile (default: web for MP4, music for MP3)")
+	flags.StringVar(&target, "to", "mp4", targetFlagUsage())
+	flags.StringVar(&preset, "preset", "", presetFlagUsage())
 	flags.BoolVar(&overwrite, "overwrite", false, "Replace existing regular output files")
 	flags.BoolVarP(&recursive, "recursive", "r", false, "Scan subdirectories recursively")
 	flags.IntVarP(&jobs, "jobs", "j", 1, "Convert this many files at once")
@@ -287,6 +288,20 @@ func newCompletionCommand(root *cobra.Command, stdout io.Writer) *cobra.Command 
 			}
 		},
 	}
+}
+
+// targetFlagUsage and presetFlagUsage are built from the registry so the help
+// text cannot drift from the formats that actually exist.
+func targetFlagUsage() string {
+	return "Target format: " + strings.Join((profile.Registry{}).TargetNames(), ", ")
+}
+
+func presetFlagUsage() string {
+	defaults := make([]string, 0)
+	for _, target := range (profile.Registry{}).Targets() {
+		defaults = append(defaults, fmt.Sprintf("%s for %s", target.DefaultPreset, target.Name))
+	}
+	return "Conversion profile (default: " + strings.Join(defaults, ", ") + ")"
 }
 
 func exactArgs(expected int) cobra.PositionalArgs {
