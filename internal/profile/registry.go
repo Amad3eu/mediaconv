@@ -40,6 +40,13 @@ var targets = []Target{
 		BatchExtensions: []string{".webm", ".mov", ".qt", ".mkv", ".avi", ".m4v"},
 	},
 	{
+		Name:          "webm",
+		DefaultPreset: "stream",
+		// MP4 is here and .mp4 is absent from the mp4 target above: the two
+		// directions are what make a round trip possible.
+		BatchExtensions: []string{".mp4", ".m4v", ".mov", ".qt", ".mkv", ".avi"},
+	},
+	{
 		Name:            "mp3",
 		DefaultPreset:   "music",
 		BatchExtensions: []string{".wav", ".flac", ".m4a", ".m4b", ".aac", ".ogg", ".oga", ".opus"},
@@ -84,8 +91,9 @@ type SupportedFormat struct {
 
 func (Registry) Formats() []SupportedFormat {
 	videoSources := []string{"webm", "mov", "qt", "mkv", "avi", "mp4", "m4v"}
+	webmSources := []string{"mp4", "m4v", "mov", "qt", "mkv", "avi", "webm"}
 	audioSources := []string{"wav", "flac", "m4a", "m4b", "aac", "ogg", "oga", "opus", "mp3"}
-	formats := make([]SupportedFormat, 0, len(videoSources)+len(audioSources))
+	formats := make([]SupportedFormat, 0, len(videoSources)+len(webmSources)+len(audioSources))
 	for _, source := range videoSources {
 		formats = append(formats, SupportedFormat{
 			Source:      source,
@@ -94,6 +102,16 @@ func (Registry) Formats() []SupportedFormat {
 			VideoCodec:  "h264 (libx264)",
 			AudioCodec:  "aac",
 			Description: "Broadly compatible MP4 for browsers and media players",
+		})
+	}
+	for _, source := range webmSources {
+		formats = append(formats, SupportedFormat{
+			Source:      source,
+			Target:      "webm",
+			Profile:     "stream",
+			VideoCodec:  "vp9 (libvpx-vp9)",
+			AudioCodec:  "opus (libopus)",
+			Description: "Royalty-free WebM for the web, without H.264 patent licensing",
 		})
 	}
 	for _, source := range audioSources {
@@ -121,6 +139,8 @@ func (Registry) Plan(inputPath, outputPath, target, preset string, info media.In
 	switch target {
 	case "mp4":
 		return planWebMP4(inputPath, outputPath, preset, info, capabilities)
+	case "webm":
+		return planStreamWebM(inputPath, outputPath, preset, info, capabilities)
 	case "mp3":
 		return planMusicMP3(inputPath, outputPath, preset, info, capabilities)
 	default:
@@ -269,11 +289,126 @@ func planMusicMP3(inputPath, outputPath, preset string, info media.Info, capabil
 	}, nil
 }
 
+// planStreamWebM converts video to VP9 with Opus audio in a WebM container.
+//
+// The quality knobs differ from the web preset on purpose. CRF 32 is roughly
+// the perceptual match of libx264 at CRF 23, because the two encoders do not
+// share a scale. The deadline is "good" rather than "best": "best" costs
+// several times the encode time for a difference most viewers cannot see, and
+// this tool converts whole folders.
+func planStreamWebM(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	if preset != "stream" {
+		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
+	}
+	sourceFormat, ok := supportedVideoSource(inputPath, info.FormatNames)
+	if !ok {
+		return media.Plan{}, fmt.Errorf(
+			"%w: ffprobe detected %q instead of mp4, mov, mkv, avi, or webm",
+			ErrUnsupportedInput,
+			strings.Join(info.FormatNames, ","),
+		)
+	}
+
+	videos := info.VideoStreams()
+	if len(videos) == 0 {
+		return media.Plan{}, fmt.Errorf("%w: no video stream was found", ErrUnsupportedInput)
+	}
+	if !capabilities.HasEncoder("libvpx-vp9") {
+		return media.Plan{}, fmt.Errorf("%w: libvpx-vp9 encoder", ErrMissingCapability)
+	}
+	if !capabilities.HasMuxer("webm") {
+		return media.Plan{}, fmt.Errorf("%w: WebM muxer", ErrMissingCapability)
+	}
+
+	audios := info.AudioStreams()
+	if len(audios) > 0 && !capabilities.HasEncoder("libopus") {
+		return media.Plan{}, fmt.Errorf("%w: libopus encoder", ErrMissingCapability)
+	}
+
+	video := videos[0]
+	filters := make([]string, 0, 1)
+	if video.Width%2 != 0 || video.Height%2 != 0 {
+		filters = append(filters, "pad=ceil(iw/2)*2:ceil(ih/2)*2")
+	}
+
+	warnings := make([]string, 0)
+	if len(videos) > 1 {
+		warnings = append(warnings, "Only the first video stream will be converted.")
+	}
+	if len(audios) > 1 {
+		warnings = append(warnings, "Only the first audio stream will be converted.")
+	}
+	if len(info.SubtitleStreams()) > 0 {
+		warnings = append(warnings, "Subtitle streams are not included in the WebM output.")
+	}
+	if info.ChapterCount > 0 {
+		warnings = append(warnings, "Chapters are not included in the WebM output.")
+	}
+	if isHDR(video.ColorTransfer) {
+		warnings = append(warnings, "The source appears to use HDR transfer characteristics; the stream preset may not preserve HDR correctly.")
+	}
+	if inputExtensionDoesNotMatchSource(inputPath, sourceFormat) {
+		warnings = append(warnings, fmt.Sprintf("The input is detected as %s even though its file extension is %s.", strings.ToUpper(sourceFormat), strings.ToLower(filepath.Ext(inputPath))))
+	}
+
+	plan := media.Plan{
+		InputPath:    inputPath,
+		OutputPath:   outputPath,
+		SourceFormat: sourceFormat,
+		TargetFormat: "webm",
+		Profile:      "stream",
+		VideoMap:     "0:v:0",
+		Video: &media.VideoSettings{
+			Codec:       "libvpx-vp9",
+			CRF:         32,
+			Preset:      "good",
+			PixelFormat: "yuv420p",
+			Filters:     filters,
+		},
+		CopyMetadata:  true,
+		DropChapters:  true,
+		Warnings:      warnings,
+		InputDuration: info.Duration,
+	}
+	if len(audios) > 0 {
+		plan.AudioMap = "0:a:0"
+		plan.Audio = &media.AudioSettings{Codec: "libopus", BitRate: "128k"}
+	}
+	return plan, nil
+}
+
+func verifyWebM(plan media.Plan, info media.Info) error {
+	if !hasFormat(info.FormatNames, "webm") && !hasFormat(info.FormatNames, "matroska") {
+		return fmt.Errorf("ffprobe did not detect a WebM container")
+	}
+	videos := info.VideoStreams()
+	if len(videos) == 0 || videos[0].CodecName != "vp9" {
+		return fmt.Errorf("output does not contain the expected VP9 video stream")
+	}
+	if videos[0].Width%2 != 0 || videos[0].Height%2 != 0 {
+		return fmt.Errorf("output video dimensions are not even")
+	}
+	if plan.Audio != nil {
+		audios := info.AudioStreams()
+		if len(audios) == 0 || audios[0].CodecName != "opus" {
+			return fmt.Errorf("output does not contain the expected Opus audio stream")
+		}
+	}
+	if plan.InputDuration > 0 && info.Duration > 0 {
+		if drift := info.Duration - plan.InputDuration; drift < -time.Second || drift > time.Second {
+			return fmt.Errorf("output duration %s differs from the input duration %s", info.Duration, plan.InputDuration)
+		}
+	}
+	return nil
+}
+
 func Verify(plan media.Plan, info media.Info) error {
 	if info.Size <= 0 {
 		return fmt.Errorf("output file is empty")
 	}
 	switch plan.TargetFormat {
+	case "webm":
+		return verifyWebM(plan, info)
 	case "mp3":
 		return verifyMP3(plan, info)
 	default:

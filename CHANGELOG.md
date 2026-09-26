@@ -7,6 +7,18 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado
+
+- Perfil `stream`, que converte vídeo para WebM com VP9 e Opus. Use
+  `--to webm`.
+- Verificações de `libvpx-vp9`, `libopus` e do muxer WebM no `mediaconv
+  doctor`.
+
+### Alterado
+
+- A lista de formatos de saída passa a viver apenas no registry de perfis, em
+  vez de duplicada em `internal/app`.
+
 ## [0.5.0] - 2026-09-26
 
 ### Adicionado

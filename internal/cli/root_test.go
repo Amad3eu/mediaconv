@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -132,32 +134,29 @@ func TestExecuteVersion(t *testing.T) {
 }
 
 func TestExecuteFormats(t *testing.T) {
+	// The registry owns which conversions exist; these tests own how the CLI
+	// renders them. Rebuilding the expectation from the registry keeps a new
+	// format from touching this file, and keeps the failure readable.
+	supported := (profile.Registry{}).Formats()
+
 	t.Run("text", func(t *testing.T) {
 		code, stdout, stderr := executeForTest(t, "formats")
 		if code != 0 || stderr != "" {
 			t.Fatalf("Execute(formats) = code %d, stderr %q", code, stderr)
 		}
-		want := strings.Join([]string{
-			"WEBM -> MP4  profile=web  video=h264 (libx264)  audio=aac",
-			"MOV -> MP4  profile=web  video=h264 (libx264)  audio=aac",
-			"QT -> MP4  profile=web  video=h264 (libx264)  audio=aac",
-			"MKV -> MP4  profile=web  video=h264 (libx264)  audio=aac",
-			"AVI -> MP4  profile=web  video=h264 (libx264)  audio=aac",
-			"MP4 -> MP4  profile=web  video=h264 (libx264)  audio=aac",
-			"M4V -> MP4  profile=web  video=h264 (libx264)  audio=aac",
-			"WAV -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"FLAC -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"M4A -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"M4B -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"AAC -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"OGG -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"OGA -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"OPUS -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"MP3 -> MP3  profile=music  video=none  audio=mp3 (libmp3lame)",
-			"",
-		}, "\n")
-		if stdout != want {
-			t.Errorf("formats output = %q, want %q", stdout, want)
+
+		lines := make([]string, 0, len(supported)+1)
+		for _, format := range supported {
+			lines = append(lines, fmt.Sprintf(
+				"%s -> %s  profile=%s  video=%s  audio=%s",
+				strings.ToUpper(format.Source), strings.ToUpper(format.Target),
+				format.Profile, format.VideoCodec, format.AudioCodec,
+			))
+		}
+		lines = append(lines, "")
+
+		if want := strings.Join(lines, "\n"); stdout != want {
+			t.Errorf("formats output =\n%s\nwant\n%s", stdout, want)
 		}
 	})
 
@@ -171,12 +170,12 @@ func TestExecuteFormats(t *testing.T) {
 			Formats []profile.SupportedFormat `json:"formats"`
 		}
 		decodeJSON(t, stdout, &envelope)
-		if !envelope.OK || len(envelope.Formats) != 16 {
-			t.Fatalf("formats JSON = %#v", envelope)
+
+		if !envelope.OK {
+			t.Error("formats JSON ok = false")
 		}
-		format := envelope.Formats[0]
-		if format.Source != "webm" || format.Target != "mp4" || format.Profile != "web" || format.VideoCodec != "h264 (libx264)" || format.AudioCodec != "aac" {
-			t.Errorf("format JSON = %#v", format)
+		if !reflect.DeepEqual(envelope.Formats, supported) {
+			t.Errorf("formats JSON carries %d entries, registry has %d", len(envelope.Formats), len(supported))
 		}
 	})
 }
