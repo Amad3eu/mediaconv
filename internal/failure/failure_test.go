@@ -41,6 +41,7 @@ func TestErrorMessageAndUnwrap(t *testing.T) {
 			if got := test.err.Error(); got != test.message {
 				t.Errorf("Error() = %q, want %q", got, test.message)
 			}
+			//nolint:errorlint // Unwrap must return this exact error; errors.Is would walk the chain and hide a wrong result.
 			if got := test.err.Unwrap(); got != test.unwrap {
 				t.Errorf("Unwrap() = %v, want %v", got, test.unwrap)
 			}
@@ -87,7 +88,7 @@ func TestExitCode(t *testing.T) {
 		{name: "input", err: New(Input, "bad input", "", nil), want: ExitInput},
 		{name: "output conflict", err: New(OutputConflict, "exists", "", nil), want: ExitOutputConflict},
 		{name: "conversion", err: New(Conversion, "failed", "", nil), want: ExitConversion},
-		{name: "interrupted", err: New(Interrupted, "cancelled", "", nil), want: ExitInterrupted},
+		{name: "interrupted", err: New(Interrupted, "canceled", "", nil), want: ExitInterrupted},
 		{name: "typed unexpected", err: New(Unexpected, "unexpected", "", nil), want: ExitUnexpected},
 		{name: "wrapped typed error", err: fmt.Errorf("command failed: %w", New(Input, "bad input", "", nil)), want: ExitInput},
 		// Cobra returns unclassified errors for invalid commands and arguments;
@@ -166,5 +167,49 @@ func TestReportedMarksAnErrorWithoutChangingItsIdentity(t *testing.T) {
 	}
 	if Reported(nil) != nil {
 		t.Error("Reported(nil) != nil")
+	}
+}
+
+func TestDetailReturnsTheCauseOnlyWhenItAddsSomething(t *testing.T) {
+	t.Parallel()
+
+	cause := errors.New("stat /tmp/x: no such file or directory")
+
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{name: "nil", err: nil, want: ""},
+		{
+			name: "not a failure error",
+			err:  errors.New("plain"),
+			want: "",
+		},
+		{
+			name: "no cause",
+			err:  New(Input, "The input file is empty.", "", nil),
+			want: "",
+		},
+		{
+			name: "cause repeats the message",
+			err:  New(Input, cause.Error(), "", cause),
+			want: "",
+		},
+		{
+			name: "cause adds detail",
+			err:  New(Input, "The input could not be read.", "", cause),
+			want: cause.Error(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := Detail(test.err); got != test.want {
+				t.Errorf("Detail() = %q, want %q", got, test.want)
+			}
+		})
 	}
 }

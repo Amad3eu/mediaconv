@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Amad3eu/mediaconv/internal/failure"
@@ -25,10 +26,45 @@ type Config struct {
 
 type Service struct {
 	config Config
+
+	ffmpegOnce   sync.Once
+	ffmpegPaths  ffmpeg.Paths
+	capabilities media.Capabilities
+	ffmpegErr    error
 }
 
 func New(config Config) *Service {
 	return &Service{config: config}
+}
+
+// resolveFFmpeg locates FFmpeg and reads its capabilities once per service.
+//
+// Detection costs four subprocesses, and a batch converts every file with the
+// same FFmpeg, so repeating it per file dominated the runtime for folders of
+// small inputs. The result is cached for the life of the service, which is one
+// command invocation: the installed FFmpeg does not change underneath a
+// running conversion.
+func (s *Service) resolveFFmpeg(ctx context.Context) (ffmpeg.Paths, media.Capabilities, error) {
+	s.ffmpegOnce.Do(func() {
+		paths, err := (ffmpeg.Locator{}).Locate(s.config.FFmpegPath, s.config.FFprobePath)
+		if err != nil {
+			s.ffmpegErr = failure.New(
+				failure.Dependency,
+				"FFmpeg and ffprobe are required but could not be located.",
+				"Install FFmpeg, run 'mediaconv doctor', or provide --ffmpeg-path and --ffprobe-path.",
+				err,
+			)
+			return
+		}
+		capabilities, err := (ffmpeg.CapabilityDetector{}).Detect(ctx, paths)
+		if err != nil {
+			s.ffmpegErr = dependencyOrInterrupted(ctx, "Could not inspect the installed FFmpeg.", err)
+			return
+		}
+		s.ffmpegPaths = paths
+		s.capabilities = capabilities
+	})
+	return s.ffmpegPaths, s.capabilities, s.ffmpegErr
 }
 
 type ConvertRequest struct {
@@ -55,6 +91,8 @@ type BatchRequest struct {
 	Preset    string
 	Overwrite bool
 	Recursive bool
+	// Jobs is how many files to convert at once. Zero means sequential.
+	Jobs int
 }
 
 type BatchItem struct {
@@ -71,6 +109,7 @@ type BatchResult struct {
 	Target    string        `json:"target"`
 	Preset    string        `json:"preset,omitempty"`
 	Recursive bool          `json:"recursive"`
+	Jobs      int           `json:"jobs"`
 	Total     int           `json:"total"`
 	Converted int           `json:"converted"`
 	Failed    int           `json:"failed"`
@@ -89,18 +128,9 @@ func (s *Service) Convert(ctx context.Context, request ConvertRequest, sink func
 		return ConvertResult{}, err
 	}
 
-	paths, err := (ffmpeg.Locator{}).Locate(s.config.FFmpegPath, s.config.FFprobePath)
+	paths, capabilities, err := s.resolveFFmpeg(ctx)
 	if err != nil {
-		return ConvertResult{}, failure.New(
-			failure.Dependency,
-			"FFmpeg and ffprobe are required but could not be located.",
-			"Install FFmpeg, run 'mediaconv doctor', or provide --ffmpeg-path and --ffprobe-path.",
-			err,
-		)
-	}
-	capabilities, err := (ffmpeg.CapabilityDetector{}).Detect(ctx, paths)
-	if err != nil {
-		return ConvertResult{}, dependencyOrInterrupted(ctx, "Could not inspect the installed FFmpeg.", err)
+		return ConvertResult{}, err
 	}
 
 	prober := ffmpeg.Prober{Binary: paths.FFprobe}
@@ -209,63 +239,128 @@ func (s *Service) BatchConvert(ctx context.Context, request BatchRequest) (Batch
 		)
 	}
 
+	jobs, err := normalizeJobs(request.Jobs, len(candidates))
+	if err != nil {
+		return BatchResult{}, err
+	}
+
 	result := BatchResult{
 		InputDir:  inputDir,
 		OutputDir: outputDir,
 		Target:    target,
 		Preset:    request.Preset,
 		Recursive: request.Recursive,
+		Jobs:      jobs,
 		Total:     len(candidates),
 		Items:     make([]BatchItem, 0, len(candidates)),
 	}
 
-	for _, inputPath := range candidates {
-		if err := ctx.Err(); err != nil {
-			result.Elapsed = time.Since(started)
-			return result, interrupted(err)
-		}
+	// Each worker writes to its own index, so the slices need no lock and the
+	// collection below can read them once every worker has finished.
+	items := make([]BatchItem, len(candidates))
+	converted := make([]bool, len(candidates))
 
-		outputPath, err := batchOutputPath(inputDir, outputDir, inputPath, target)
-		if err != nil {
-			result.Failed++
-			result.Items = append(result.Items, BatchItem{InputPath: inputPath, OK: false, Error: err.Error()})
+	queue := make(chan int)
+	var group sync.WaitGroup
+	for range jobs {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			for index := range queue {
+				if ctx.Err() != nil {
+					return
+				}
+				items[index] = s.convertBatchItem(ctx, inputDir, outputDir, candidates[index], target, request)
+				converted[index] = true
+			}
+		}()
+	}
+
+feed:
+	for index := range candidates {
+		select {
+		case queue <- index:
+		case <-ctx.Done():
+			break feed
+		}
+	}
+	close(queue)
+	group.Wait()
+
+	// Collected in candidate order rather than completion order, so a
+	// concurrent run reports exactly what a sequential one would.
+	for index := range candidates {
+		if !converted[index] {
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+		result.Items = append(result.Items, items[index])
+		if items[index].OK {
+			result.Converted++
+		} else {
 			result.Failed++
-			result.Items = append(result.Items, BatchItem{InputPath: inputPath, OutputPath: outputPath, OK: false, Error: err.Error()})
-			continue
 		}
-
-		converted, err := s.Convert(ctx, ConvertRequest{
-			InputPath:  inputPath,
-			OutputPath: outputPath,
-			Target:     target,
-			Preset:     request.Preset,
-			Overwrite:  request.Overwrite,
-		}, nil)
-		if err != nil {
-			result.Failed++
-			result.Items = append(result.Items, BatchItem{
-				InputPath:  inputPath,
-				OutputPath: outputPath,
-				OK:         false,
-				Error:      failure.Format(err, false),
-			})
-			continue
-		}
-
-		result.Converted++
-		result.Items = append(result.Items, BatchItem{
-			InputPath:  converted.InputPath,
-			OutputPath: converted.OutputPath,
-			OK:         true,
-			Warnings:   converted.Warnings,
-		})
 	}
 
 	result.Elapsed = time.Since(started)
+	if err := ctx.Err(); err != nil {
+		return result, interrupted(err)
+	}
 	return result, nil
+}
+
+// convertBatchItem converts one file and never returns an error: a batch
+// reports per-file outcomes and keeps going.
+func (s *Service) convertBatchItem(ctx context.Context, inputDir, outputDir, inputPath, target string, request BatchRequest) BatchItem {
+	outputPath, err := batchOutputPath(inputDir, outputDir, inputPath, target)
+	if err != nil {
+		return BatchItem{InputPath: inputPath, OK: false, Error: err.Error()}
+	}
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+		return BatchItem{InputPath: inputPath, OutputPath: outputPath, OK: false, Error: err.Error()}
+	}
+
+	result, err := s.Convert(ctx, ConvertRequest{
+		InputPath:  inputPath,
+		OutputPath: outputPath,
+		Target:     target,
+		Preset:     request.Preset,
+		Overwrite:  request.Overwrite,
+	}, nil)
+	if err != nil {
+		return BatchItem{
+			InputPath:  inputPath,
+			OutputPath: outputPath,
+			OK:         false,
+			Error:      failure.Format(err, false),
+		}
+	}
+	return BatchItem{
+		InputPath:  result.InputPath,
+		OutputPath: result.OutputPath,
+		OK:         true,
+		Warnings:   result.Warnings,
+	}
+}
+
+// normalizeJobs resolves the requested concurrency. Zero is the unset zero
+// value and means sequential; more workers than files would only park idle
+// goroutines, so the count is capped at the amount of work available.
+func normalizeJobs(requested, candidates int) (int, error) {
+	if requested < 0 {
+		return 0, failure.New(
+			failure.Usage,
+			fmt.Sprintf("--jobs cannot be negative, received %d.", requested),
+			"Use --jobs 1 to convert one file at a time.",
+			nil,
+		)
+	}
+	if requested == 0 {
+		requested = 1
+	}
+	if requested > candidates {
+		return candidates, nil
+	}
+	return requested, nil
 }
 
 func (s *Service) Inspect(ctx context.Context, input string) (media.Info, error) {

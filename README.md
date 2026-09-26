@@ -1,4 +1,4 @@
-# MediaConv
+# ![MediaConv — Safe command-line media converter](site/brand/banner.png)
 
 [English](README.md) · [Português (Brasil)](README.pt-BR.md)
 
@@ -10,6 +10,11 @@
 
 MediaConv is a safe, script-friendly command-line media converter powered by
 FFmpeg.
+
+![MediaConv in a terminal: doctor reports every required FFmpeg codec as
+available, a WebM file is converted to MP4 with live progress, a second
+conversion refuses to replace the existing output, and a folder of WAV files is
+batch converted to MP3.](site/demo.gif)
 
 It starts with one polished profile: converting common video containers to
 broadly compatible MP4 using H.264 video and AAC audio. MediaConv validates the
@@ -72,6 +77,9 @@ mediaconv convert "song.wav" --to mp3
 
 # Convert a whole directory.
 mediaconv batch "./recordings" --to mp4 --output-dir "./converted"
+
+# Convert four files at a time.
+mediaconv batch "./recordings" --to mp4 --jobs 4
 
 # Select an output and explicitly allow replacement.
 mediaconv convert "recording.webm" \
@@ -204,7 +212,7 @@ Development requires Go 1.26 or newer.
 
 ```text
 mediaconv convert INPUT [--to mp4|mp3] [-o OUTPUT] [--preset web|music] [--overwrite]
-mediaconv batch DIRECTORY [--to mp4|mp3] [-o OUTPUT_DIR] [--recursive] [--overwrite]
+mediaconv batch DIRECTORY [--to mp4|mp3] [-o OUTPUT_DIR] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -213,7 +221,7 @@ mediaconv completion bash|zsh|fish|powershell
 ```
 
 Use `mediaconv COMMAND --help` for the complete flags and examples. Global flags
-include `--json`, `--verbose`, `--ffmpeg-path`, and `--ffprobe-path`.
+include `--json`, `--verbose`, `--color`, `--ffmpeg-path`, and `--ffprobe-path`.
 
 ### JSON and exit codes
 
@@ -231,6 +239,34 @@ stderr is not a terminal.
 | 5 | Output conflict or publication failure |
 | 6 | Conversion or output verification failure |
 | 130 | Interrupted by the user |
+
+### Batch concurrency
+
+`batch` converts one file at a time by default. Pass `--jobs N` (`-j`) to
+convert several at once:
+
+```bash
+mediaconv batch "./recordings" --to mp3 --jobs 4
+```
+
+Results are always reported in the input order the scan produced, so a
+concurrent run prints and serializes exactly what a sequential one would.
+
+FFmpeg already uses several threads per conversion, so the useful range is
+smaller than the core count: throughput usually flattens a few jobs in, and
+past that the conversions only compete for the same cores. Start around four
+and measure. The value is capped at the number of files found.
+
+### Color
+
+Status labels are colored when the destination is a terminal, and never when it
+is a pipe or a file, so redirected output and `--json` stay byte for byte what
+they were before. The decision is made per stream, so redirecting only stdout
+keeps color on stderr.
+
+Override it with `--color auto|always|never`, or set
+[`NO_COLOR`](https://no-color.org) to any non-empty value to turn color off for
+every run. An explicit `--color always` wins over `NO_COLOR`.
 
 ## Supported conversions
 
@@ -276,7 +312,6 @@ filesystems, but may not be available on some removable or network filesystems.
 
 - Additional profiles such as MP4 to WebM and GIF previews.
 - Audio output profiles such as AAC and WAV.
-- Batch concurrency controls for larger folders.
 - Native package repositories for `apt`, `dnf`, and `apk`.
 - Optional hardware acceleration after capability-specific tests are available.
 

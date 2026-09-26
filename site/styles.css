@@ -76,14 +76,9 @@ pre {
 }
 
 .brand-mark {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--ink);
-  color: #ffffff;
-  font-size: 13px;
+  display: block;
+  width: 32px;
+  height: auto;
 }
 
 .nav-links {
@@ -204,6 +199,12 @@ h3 {
 
 .terminal-top span:nth-child(3) {
   background: #34d399;
+}
+
+.terminal-card img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 pre {

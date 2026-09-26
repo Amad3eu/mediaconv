@@ -11,7 +11,7 @@ import (
 	"github.com/Amad3eu/mediaconv/internal/profile"
 )
 
-func writeConvertResult(writer io.Writer, result app.ConvertResult, asJSON bool) error {
+func writeConvertResult(writer io.Writer, result app.ConvertResult, asJSON bool, pal palette) error {
 	if asJSON {
 		return writeJSON(writer, map[string]any{
 			"ok":              true,
@@ -24,18 +24,18 @@ func writeConvertResult(writer io.Writer, result app.ConvertResult, asJSON bool)
 		})
 	}
 
-	if _, err := fmt.Fprintf(writer, "Converted: %s\n", result.OutputPath); err != nil {
+	if _, err := fmt.Fprintf(writer, "%s %s\n", pal.ok("Converted:"), result.OutputPath); err != nil {
 		return err
 	}
 	for _, warning := range result.Warnings {
-		if _, err := fmt.Fprintf(writer, "Warning: %s\n", warning); err != nil {
+		if _, err := fmt.Fprintf(writer, "%s %s\n", pal.warning("Warning:"), warning); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func writeBatchResult(writer io.Writer, result app.BatchResult, asJSON bool) error {
+func writeBatchResult(writer io.Writer, result app.BatchResult, asJSON bool, pal palette) error {
 	if asJSON {
 		return writeJSON(writer, map[string]any{
 			"ok":              result.Failed == 0,
@@ -52,15 +52,21 @@ func writeBatchResult(writer io.Writer, result app.BatchResult, asJSON bool) err
 		})
 	}
 
-	if _, err := fmt.Fprintf(writer, "Batch: %d file(s), %d converted, %d failed\n", result.Total, result.Converted, result.Failed); err != nil {
+	failed := fmt.Sprintf("%d failed", result.Failed)
+	if result.Failed > 0 {
+		failed = pal.failed(failed)
+	}
+	if _, err := fmt.Fprintf(writer, "Batch: %d file(s), %d converted, %s\n", result.Total, result.Converted, failed); err != nil {
 		return err
 	}
 	for _, item := range result.Items {
-		status := "OK"
+		// Pad before styling: %-4s counts the escape bytes and would ragged
+		// the column once the label carries ANSI codes.
+		status := pal.ok(fmt.Sprintf("%-4s", "OK"))
 		if !item.OK {
-			status = "FAIL"
+			status = pal.failed(fmt.Sprintf("%-4s", "FAIL"))
 		}
-		if _, err := fmt.Fprintf(writer, "%-4s %s", status, item.InputPath); err != nil {
+		if _, err := fmt.Fprintf(writer, "%s %s", status, item.InputPath); err != nil {
 			return err
 		}
 		if item.OutputPath != "" {
@@ -77,7 +83,7 @@ func writeBatchResult(writer io.Writer, result app.BatchResult, asJSON bool) err
 			return err
 		}
 		for _, warning := range item.Warnings {
-			if _, err := fmt.Fprintf(writer, "     Warning: %s\n", warning); err != nil {
+			if _, err := fmt.Fprintf(writer, "     %s %s\n", pal.warning("Warning:"), warning); err != nil {
 				return err
 			}
 		}
@@ -123,16 +129,18 @@ func writeMediaInfo(writer io.Writer, info media.Info, asJSON bool) error {
 	return nil
 }
 
-func writeDoctorReport(writer io.Writer, report app.DoctorReport, asJSON bool) error {
+func writeDoctorReport(writer io.Writer, report app.DoctorReport, asJSON bool, pal palette) error {
 	if asJSON {
 		return writeJSON(writer, report)
 	}
 	for _, check := range report.Checks {
-		status := "OK"
+		// Pad before styling, so the name column stays aligned whether or not
+		// the status label carries ANSI codes.
+		status := pal.ok(fmt.Sprintf("%-7s", "OK"))
 		if !check.OK {
-			status = "MISSING"
+			status = pal.failed(fmt.Sprintf("%-7s", "MISSING"))
 		}
-		if _, err := fmt.Fprintf(writer, "%-7s %-18s %s\n", status, check.Name, check.Detail); err != nil {
+		if _, err := fmt.Fprintf(writer, "%s %-18s %s\n", status, check.Name, check.Detail); err != nil {
 			return err
 		}
 	}

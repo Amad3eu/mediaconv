@@ -1,4 +1,4 @@
-# MediaConv
+# ![MediaConv — conversor de mídia por linha de comando](site/brand/banner.png)
 
 [English](README.md) · [Português (Brasil)](README.pt-BR.md)
 
@@ -10,6 +10,11 @@
 
 MediaConv é um conversor de mídia por linha de comando, seguro e amigável a
 automações, baseado no FFmpeg.
+
+![MediaConv em um terminal: o doctor mostra todos os codecs necessários do
+FFmpeg como disponíveis, um arquivo WebM é convertido para MP4 com progresso ao
+vivo, uma segunda conversão se recusa a substituir a saída existente e uma pasta
+de arquivos WAV é convertida em lote para MP3.](site/demo.gif)
 
 Ele começa com um perfil bem resolvido: converter containers de vídeo comuns em
 MP4 amplamente compatível, usando vídeo H.264 e áudio AAC. O MediaConv valida a
@@ -205,7 +210,7 @@ O desenvolvimento exige Go 1.26 ou mais recente.
 
 ```text
 mediaconv convert INPUT [--to mp4|mp3] [-o SAÍDA] [--preset web|music] [--overwrite]
-mediaconv batch DIRETÓRIO [--to mp4|mp3] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite]
+mediaconv batch DIRETÓRIO [--to mp4|mp3] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -214,7 +219,8 @@ mediaconv completion bash|zsh|fish|powershell
 ```
 
 Use `mediaconv COMANDO --help` para ver todas as opções e exemplos. As opções
-globais incluem `--json`, `--verbose`, `--ffmpeg-path` e `--ffprobe-path`.
+globais incluem `--json`, `--verbose`, `--color`, `--ffmpeg-path` e
+`--ffprobe-path`.
 
 ### JSON e códigos de saída
 
@@ -232,6 +238,35 @@ automaticamente quando stderr não é um terminal.
 | 5 | Conflito de saída ou falha na publicação |
 | 6 | Falha na conversão ou verificação da saída |
 | 130 | Interrompido pelo usuário |
+
+### Concorrência em lote
+
+O `batch` converte um arquivo por vez por padrão. Use `--jobs N` (`-j`) para
+converter vários de uma vez:
+
+```bash
+mediaconv batch "./gravacoes" --to mp3 --jobs 4
+```
+
+Os resultados são sempre reportados na ordem em que a varredura encontrou os
+arquivos, então uma execução concorrente imprime e serializa exatamente o mesmo
+que uma sequencial.
+
+O FFmpeg já usa várias threads por conversão, então a faixa útil é menor que a
+quantidade de núcleos: o ganho costuma estabilizar com poucos jobs e, além
+disso, as conversões apenas disputam os mesmos núcleos. Comece por volta de
+quatro e meça. O valor é limitado à quantidade de arquivos encontrados.
+
+### Cores
+
+Os rótulos de status são coloridos quando o destino é um terminal, e nunca
+quando é um pipe ou arquivo, de modo que saída redirecionada e `--json`
+permanecem byte a byte como eram antes. A decisão é tomada por fluxo, então
+redirecionar apenas o stdout mantém a cor no stderr.
+
+Use `--color auto|always|never` para forçar o comportamento, ou defina
+[`NO_COLOR`](https://no-color.org) com qualquer valor não vazio para desligar a
+cor em todas as execuções. Um `--color always` explícito vence o `NO_COLOR`.
 
 ## Conversões suportadas
 
@@ -277,7 +312,6 @@ discos removíveis ou compartilhamentos de rede.
 
 - Perfis adicionais, como MP4 para WebM e prévias em GIF.
 - Perfis de saída de áudio, como AAC e WAV.
-- Controle de concorrência em lote para pastas maiores.
 - Repositórios nativos para `apt`, `dnf` e `apk`.
 - Aceleração por hardware após a criação de testes específicos por capacidade.
 

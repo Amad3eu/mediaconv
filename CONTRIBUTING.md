@@ -40,9 +40,22 @@ Antes de enviar uma mudança, rode:
 gofmt -w .
 go mod tidy
 go vet ./...
+golangci-lint run ./...
 go test -race ./...
 go build -trimpath ./cmd/mediaconv
 ```
+
+O `golangci-lint` é o mesmo check que roda na CI. A configuração está em
+[`.golangci.yaml`](.golangci.yaml) e a CI usa a versão `v2.14.0`. Para instalar a
+mesma versão localmente:
+
+```bash
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+```
+
+Se precisar silenciar um aviso, use `//nolint:<linter> // <motivo>` com o linter
+nomeado e a justificativa. A configuração recusa `nolint` genérico ou sem
+explicação.
 
 Se alterar o empacotamento, valide também a configuração com GoReleaser. A geração
 de SBOM exige o Syft instalado:
@@ -54,6 +67,24 @@ goreleaser release --snapshot --clean --skip=publish,sign
 
 Não inclua vídeos grandes, material protegido ou dados pessoais nos testes. Prefira
 fixtures curtas, sintéticas e geradas de maneira reproduzível.
+
+## Demonstração em GIF
+
+O GIF exibido nos READMEs e no site é gerado a partir de um script versionado,
+não gravado à mão. Se você mudar a saída do CLI, regenere-o com
+[VHS](https://github.com/charmbracelet/vhs):
+
+```bash
+docs/demo/setup.sh
+vhs docs/demo/demo.tape
+```
+
+O `setup.sh` compila o CLI e gera as fixtures sintéticas em `/tmp/mediaconv-demo`;
+o `demo.tape` grava a sessão em `site/demo.gif`. A gravação não usa nenhuma mídia
+de terceiros: o vídeo é o padrão de teste do FFmpeg e o áudio é um tom senoidal.
+
+O VHS depende de `ttyd` e `ffmpeg` no `PATH`. O tape fixa o `PATH` da sessão
+gravada para que a saída do `doctor` fique igual entre máquinas.
 
 ## Commits e pull requests
 

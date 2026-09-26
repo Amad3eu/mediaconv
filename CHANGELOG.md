@@ -7,6 +7,32 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [0.5.0] - 2026-09-26
+
+### Adicionado
+
+- Identidade visual: símbolo, banner, favicon e ícone de tela inicial, com as
+  cores documentadas em `docs/BRAND.md`.
+- Metatags Open Graph e Twitter no site, para que links compartilhados exibam o
+  banner.
+- Opção `--jobs` (`-j`) no comando `batch`, para converter vários arquivos ao
+  mesmo tempo. Os resultados continuam sendo reportados na ordem da varredura,
+  independentemente da concorrência.
+- Saída colorida no terminal: rótulos de status em verde, falhas em vermelho,
+  avisos em amarelo e dicas esmaecidas.
+- Opção global `--color` com os valores `auto`, `always` e `never`, além do
+  suporte à variável de ambiente `NO_COLOR`.
+- Demonstração em GIF do CLI no README, no README em português e no site,
+  gerada de forma reproduzível pelo VHS a partir de `docs/demo/`.
+
+### Alterado
+
+- As capacidades do FFmpeg passam a ser detectadas uma única vez por execução,
+  e não uma vez por arquivo. Em um lote de 20 arquivos curtos isso eliminou 76
+  dos 80 processos de detecção e reduziu o tempo total pela metade.
+- O site passa a exibir a gravação real do terminal no lugar do bloco de
+  exemplo estático, que já não refletia a saída atual do CLI.
+
 ## [0.4.0] - 2026-09-08
 
 ### Adicionado
@@ -82,7 +108,8 @@ ser instalado separadamente; use `mediaconv doctor` para conferir a instalação
 - Releases automatizadas com binários, checksums, SBOMs, assinatura keyless e
   atestados de proveniência.
 
-[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.4.0...HEAD
+[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Amad3eu/mediaconv/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Amad3eu/mediaconv/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Amad3eu/mediaconv/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Amad3eu/mediaconv/compare/v0.1.3...v0.2.0
