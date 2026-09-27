@@ -39,10 +39,12 @@ func BuildArgs(plan media.Plan, temporaryOutput string) []string {
 		args = append(args, "-vn")
 	}
 	if plan.Audio != nil {
-		args = append(args,
-			"-c:a", plan.Audio.Codec,
-			"-b:a", plan.Audio.BitRate,
-		)
+		args = append(args, "-c:a", plan.Audio.Codec)
+		// PCM has no bitrate to set: the sample format already fixes it, and
+		// passing -b:a to it is meaningless.
+		if plan.Audio.BitRate != "" {
+			args = append(args, "-b:a", plan.Audio.BitRate)
+		}
 	}
 	if plan.CopyMetadata {
 		args = append(args, "-map_metadata", "0")
@@ -54,7 +56,16 @@ func BuildArgs(plan media.Plan, temporaryOutput string) []string {
 		args = append(args, "-movflags", "+"+strings.Join(plan.MovFlags, "+"))
 	}
 
-	return append(args, "-f", plan.TargetFormat, temporaryOutput)
+	return append(args, "-f", outputFormat(plan), temporaryOutput)
+}
+
+// outputFormat is the name FFmpeg knows the container by, which is not always
+// the extension the user asked for.
+func outputFormat(plan media.Plan) string {
+	if plan.Muxer != "" {
+		return plan.Muxer
+	}
+	return plan.TargetFormat
 }
 
 // videoQualityArgs maps the plan's quality intent onto the flags the chosen

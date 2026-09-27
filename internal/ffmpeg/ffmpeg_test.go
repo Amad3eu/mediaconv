@@ -486,3 +486,48 @@ func TestBuildArgsTranslatesQualityPerEncoder(t *testing.T) {
 		t.Errorf("libx264 args picked up VP9 only flags\ngot: %s", joined)
 	}
 }
+
+// PCM has no bitrate, and the container FFmpeg writes is not always spelled
+// like the extension the user asked for. Both are decided by the plan, and
+// both fail loudly in FFmpeg if the adapter gets them wrong.
+func TestBuildArgsRespectsMuxerAndOptionalBitRate(t *testing.T) {
+	t.Parallel()
+
+	pcm := media.Plan{
+		InputPath:    "in.mp3",
+		TargetFormat: "wav",
+		AudioMap:     "0:a:0",
+		Audio:        &media.AudioSettings{Codec: "pcm_s16le"},
+	}
+	joined := strings.Join(BuildArgs(pcm, "out.wav"), " ")
+
+	if !strings.Contains(joined, "-c:a pcm_s16le") {
+		t.Errorf("PCM args lost the codec\ngot: %s", joined)
+	}
+	if strings.Contains(joined, "-b:a") {
+		t.Errorf("PCM args carry -b:a, which PCM has no use for\ngot: %s", joined)
+	}
+	if !strings.Contains(joined, "-f wav") {
+		t.Errorf("PCM args lost the container\ngot: %s", joined)
+	}
+
+	// FFmpeg has no format called m4a; that container is written with ipod.
+	aac := media.Plan{
+		InputPath:    "in.wav",
+		TargetFormat: "m4a",
+		Muxer:        "ipod",
+		AudioMap:     "0:a:0",
+		Audio:        &media.AudioSettings{Codec: "aac", BitRate: "192k"},
+	}
+	joined = strings.Join(BuildArgs(aac, "out.m4a"), " ")
+
+	if !strings.Contains(joined, "-f ipod") {
+		t.Errorf("m4a args did not use the ipod muxer\ngot: %s", joined)
+	}
+	if strings.Contains(joined, "-f m4a") {
+		t.Errorf("m4a args passed a format FFmpeg does not know\ngot: %s", joined)
+	}
+	if !strings.Contains(joined, "-b:a 192k") {
+		t.Errorf("AAC args lost the bitrate\ngot: %s", joined)
+	}
+}

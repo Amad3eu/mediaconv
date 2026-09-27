@@ -84,10 +84,14 @@ type AudioSettings struct {
 }
 
 type Plan struct {
-	InputPath     string         `json:"input_path"`
-	OutputPath    string         `json:"output_path"`
-	SourceFormat  string         `json:"source_format"`
-	TargetFormat  string         `json:"target_format"`
+	InputPath    string `json:"input_path"`
+	OutputPath   string `json:"output_path"`
+	SourceFormat string `json:"source_format"`
+	TargetFormat string `json:"target_format"`
+	// Muxer is the FFmpeg output format when it is not spelled like the
+	// target. FFmpeg has no "m4a" muxer, for instance: that container is
+	// written with "ipod". Empty means the target name is also the muxer.
+	Muxer         string         `json:"muxer,omitempty"`
 	Profile       string         `json:"profile"`
 	VideoMap      string         `json:"video_map"`
 	AudioMap      string         `json:"audio_map,omitempty"`

@@ -205,6 +205,45 @@ func TestConvertWAVToMP3(t *testing.T) {
 	assertNoStagingDirectories(t, directory)
 }
 
+// The audio targets both have a trap the unit tests can only describe: PCM
+// rejects a bitrate, and FFmpeg has no muxer named m4a. Only a real run proves
+// the adapter got them right.
+func TestConvertWAVToM4AAndBack(t *testing.T) {
+	requireFFmpeg(t)
+	directory := t.TempDir()
+	source := filepath.Join(directory, "song.wav")
+	asM4A := filepath.Join(directory, "song.m4a")
+	backToWAV := filepath.Join(directory, "round.wav")
+	generateWAV(t, source)
+
+	service := app.New(app.Config{})
+	result, err := service.Convert(context.Background(), app.ConvertRequest{
+		InputPath: source, OutputPath: asM4A, Target: "m4a",
+	}, nil)
+	if err != nil {
+		t.Fatalf("wav to m4a error = %v", err)
+	}
+	audios := result.OutputInfo.AudioStreams()
+	if len(audios) == 0 || audios[0].CodecName != "aac" {
+		t.Fatalf("audio codec = %+v, want aac", audios)
+	}
+	if len(result.OutputInfo.VideoStreams()) != 0 {
+		t.Errorf("audio target produced a video stream: %+v", result.OutputInfo.VideoStreams())
+	}
+
+	result, err = service.Convert(context.Background(), app.ConvertRequest{
+		InputPath: asM4A, OutputPath: backToWAV, Target: "wav",
+	}, nil)
+	if err != nil {
+		t.Fatalf("m4a to wav error = %v", err)
+	}
+	audios = result.OutputInfo.AudioStreams()
+	if len(audios) == 0 || audios[0].CodecName != "pcm_s16le" {
+		t.Fatalf("audio codec = %+v, want pcm_s16le", audios)
+	}
+	assertNoStagingDirectories(t, directory)
+}
+
 func TestBatchConvertWAVToMP3(t *testing.T) {
 	requireFFmpeg(t)
 	directory := t.TempDir()

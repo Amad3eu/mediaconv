@@ -399,7 +399,7 @@ type DoctorReport struct {
 }
 
 func (s *Service) Doctor(ctx context.Context) DoctorReport {
-	report := DoctorReport{OK: true, Checks: make([]DoctorCheck, 0, 9)}
+	report := DoctorReport{OK: true, Checks: make([]DoctorCheck, 0, 12)}
 	locator := ffmpeg.Locator{}
 	ffmpegPath, ffmpegErr := locator.LocateFFmpeg(s.config.FFmpegPath)
 	report.add("ffmpeg", ffmpegErr == nil, chooseDetail(ffmpegPath, ffmpegErr))
@@ -432,10 +432,14 @@ func (s *Service) Doctor(ctx context.Context) DoctorReport {
 	report.add("libmp3lame encoder", capabilities.HasEncoder("libmp3lame"), capabilityDetail(capabilities.HasEncoder("libmp3lame")))
 	report.add("libvpx-vp9 encoder", capabilities.HasEncoder("libvpx-vp9"), capabilityDetail(capabilities.HasEncoder("libvpx-vp9")))
 	report.add("libopus encoder", capabilities.HasEncoder("libopus"), capabilityDetail(capabilities.HasEncoder("libopus")))
+	report.add("PCM encoder", capabilities.HasEncoder("pcm_s16le"), capabilityDetail(capabilities.HasEncoder("pcm_s16le")))
 	hasMP4 := capabilities.HasMuxer("mp4") || capabilities.HasMuxer("mov")
 	report.add("MP4 muxer", hasMP4, capabilityDetail(hasMP4))
 	report.add("MP3 muxer", capabilities.HasMuxer("mp3"), capabilityDetail(capabilities.HasMuxer("mp3")))
 	report.add("WebM muxer", capabilities.HasMuxer("webm"), capabilityDetail(capabilities.HasMuxer("webm")))
+	hasM4A := capabilities.HasMuxer("ipod") || capabilities.HasMuxer("mp4")
+	report.add("M4A muxer", hasM4A, capabilityDetail(hasM4A))
+	report.add("WAV muxer", capabilities.HasMuxer("wav"), capabilityDetail(capabilities.HasMuxer("wav")))
 	return report
 }
 

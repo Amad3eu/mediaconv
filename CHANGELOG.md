@@ -7,6 +7,12 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado
+
+- Perfil `aac`, que escreve áudio AAC em um container M4A. Use `--to m4a`.
+- Perfil `master`, que escreve PCM sem compressão. Use `--to wav`.
+- Verificações do codificador PCM e dos muxers M4A e WAV no `mediaconv doctor`.
+
 ### Alterado
 
 - A gravação do terminal passa a mostrar o `doctor` com as verificações de VP9,

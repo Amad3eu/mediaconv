@@ -74,7 +74,7 @@ func stubbedService(t *testing.T, encoders, muxers string) *Service {
 }
 
 func TestDoctorReportsACompleteFFmpegBuild(t *testing.T) {
-	service := stubbedService(t, "libx264,aac,libmp3lame,libvpx-vp9,libopus", "mp4,mp3,webm")
+	service := stubbedService(t, "libx264,aac,libmp3lame,libvpx-vp9,libopus,pcm_s16le", "mp4,mp3,webm,ipod,wav")
 	report := service.Doctor(context.Background())
 
 	if !report.OK {
@@ -88,9 +88,12 @@ func TestDoctorReportsACompleteFFmpegBuild(t *testing.T) {
 		"libmp3lame encoder",
 		"libvpx-vp9 encoder",
 		"libopus encoder",
+		"PCM encoder",
 		"MP4 muxer",
 		"MP3 muxer",
 		"WebM muxer",
+		"M4A muxer",
+		"WAV muxer",
 	}
 	if len(report.Checks) != len(want) {
 		t.Fatalf("Checks = %d, want %d", len(report.Checks), len(want))
@@ -112,7 +115,7 @@ func TestDoctorReportsACompleteFFmpegBuild(t *testing.T) {
 }
 
 func TestDoctorFlagsMissingCapabilities(t *testing.T) {
-	service := stubbedService(t, "libx264,aac,libvpx-vp9,libopus", "mp4,webm")
+	service := stubbedService(t, "libx264,aac,libvpx-vp9,libopus,pcm_s16le", "mp4,webm,ipod,wav")
 	report := service.Doctor(context.Background())
 
 	if report.OK {
@@ -141,7 +144,7 @@ func TestDoctorFlagsMissingCapabilities(t *testing.T) {
 }
 
 func TestDoctorAcceptsTheMovMuxerForMP4(t *testing.T) {
-	service := stubbedService(t, "libx264,aac,libmp3lame,libvpx-vp9,libopus", "mov,mp3,webm")
+	service := stubbedService(t, "libx264,aac,libmp3lame,libvpx-vp9,libopus,pcm_s16le", "mov,mp3,webm,ipod,wav")
 	report := service.Doctor(context.Background())
 
 	for _, check := range report.Checks {
@@ -156,7 +159,7 @@ func TestDoctorAcceptsTheMovMuxerForMP4(t *testing.T) {
 func TestResolveFFmpegDetectsCapabilitiesOnlyOnce(t *testing.T) {
 	spawnLog := filepath.Join(t.TempDir(), "spawns.log")
 	t.Setenv(stubLogEnvVar, spawnLog)
-	service := stubbedService(t, "libx264,aac,libmp3lame,libvpx-vp9,libopus", "mp4,mp3,webm")
+	service := stubbedService(t, "libx264,aac,libmp3lame,libvpx-vp9,libopus,pcm_s16le", "mp4,mp3,webm,ipod,wav")
 
 	for attempt := 1; attempt <= 3; attempt++ {
 		_, capabilities, err := service.resolveFFmpeg(context.Background())
