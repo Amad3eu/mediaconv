@@ -7,17 +7,30 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [0.6.0] - 2026-09-27
+
 ### Adicionado
 
 - Perfil `stream`, que converte vídeo para WebM com VP9 e Opus. Use
   `--to webm`.
 - Verificações de `libvpx-vp9`, `libopus` e do muxer WebM no `mediaconv
   doctor`.
+- Abas por plataforma e botão de copiar nos comandos do site, para que cada
+  pessoa veja apenas o caminho que lhe interessa.
 
 ### Alterado
 
 - A lista de formatos de saída passa a viver apenas no registry de perfis, em
-  vez de duplicada em `internal/app`.
+  vez de duplicada em `internal/app`, como previa a ADR 0003.
+- A ajuda de `--to` e `--preset` passa a ser gerada a partir do registry, então
+  um formato novo aparece no `--help` sem edição manual.
+- Os comandos do site quebram em várias linhas em vez de serem cortados na
+  borda, e a gravação do terminal na página inicial ficou maior.
+
+### Corrigido
+
+- Comandos longos no site quebravam no meio de uma palavra, o que fazia uma URL
+  de instalação parecer três comandos distintos.
 
 ## [0.5.0] - 2026-09-26
 
@@ -120,7 +133,8 @@ ser instalado separadamente; use `mediaconv doctor` para conferir a instalação
 - Releases automatizadas com binários, checksums, SBOMs, assinatura keyless e
   atestados de proveniência.
 
-[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.5.0...HEAD
+[Não lançado]: https://github.com/Amad3eu/mediaconv/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Amad3eu/mediaconv/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Amad3eu/mediaconv/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Amad3eu/mediaconv/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Amad3eu/mediaconv/compare/v0.2.0...v0.3.0
