@@ -89,30 +89,75 @@
             <span class="step-number">1</span>
             <h3>Install FFmpeg</h3>
             <p>MediaConv uses your local FFmpeg and ffprobe binaries.</p>
-            <pre><code>sudo apt install ffmpeg
-brew install ffmpeg
-winget install --id Gyan.FFmpeg --exact</code></pre>
+            <div class="snippet" data-snippet>
+              <div class="snippet-bar">
+                <div class="snippet-tabs" role="tablist" aria-label="Operating system">
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="true" data-panel="apt">apt</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="brew">brew</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="winget">winget</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="pacman">pacman</button>
+                </div>
+                <button class="snippet-copy" type="button" aria-label="Copy command">Copy</button>
+              </div>
+              <pre data-panel="apt"><code><span class="cmd">sudo apt update &amp;&amp; sudo apt install ffmpeg</span></code></pre>
+              <pre data-panel="brew"><code><span class="cmd">brew install ffmpeg</span></code></pre>
+              <pre data-panel="winget"><code><span class="cmd">winget install --id Gyan.FFmpeg --exact --source winget</span></code></pre>
+              <pre data-panel="pacman"><code><span class="cmd">sudo pacman -S ffmpeg</span></code></pre>
+            </div>
           </article>
+
           <article>
             <span class="step-number">2</span>
             <h3>Install MediaConv</h3>
-            <p>Use a package manager, release archive, or the Go toolchain.</p>
-            <pre><code>curl -fsSL https://amad3eu.github.io/mediaconv/install.sh | sh
-irm https://amad3eu.github.io/mediaconv/install.ps1 | iex
-brew install --cask Amad3eu/tap/mediaconv
-scoop bucket add amad3eu https://github.com/Amad3eu/scoop-bucket
-scoop install amad3eu/mediaconv
-sudo apt install ./mediaconv_0.3.0_linux_amd64.deb</code></pre>
+            <p>Use the install script, a package manager, or the Go toolchain.</p>
+            <div class="snippet" data-snippet>
+              <div class="snippet-bar">
+                <div class="snippet-tabs" role="tablist" aria-label="Installation method">
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="true" data-panel="script">Script</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="homebrew">Brew</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="scoop">Scoop</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="deb">.deb</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="go">Go</button>
+                </div>
+                <button class="snippet-copy" type="button" aria-label="Copy command">Copy</button>
+              </div>
+              <pre data-panel="script"><code><span class="cmd">curl -fsSL https://amad3eu.github.io/mediaconv/install.sh | sh</span>
+<span class="comment"># Windows PowerShell</span>
+<span class="cmd">irm https://amad3eu.github.io/mediaconv/install.ps1 | iex</span></code></pre>
+              <pre data-panel="homebrew"><code><span class="cmd">brew install --cask Amad3eu/tap/mediaconv</span></code></pre>
+              <pre data-panel="scoop"><code><span class="cmd">scoop bucket add amad3eu https://github.com/Amad3eu/scoop-bucket</span>
+<span class="cmd">scoop install amad3eu/mediaconv</span></code></pre>
+              <pre data-panel="deb"><code><span class="cmd">sudo apt install ./mediaconv_0.5.0_linux_amd64.deb</span></code></pre>
+              <pre data-panel="go"><code><span class="cmd">go install github.com/Amad3eu/mediaconv/cmd/mediaconv@latest</span></code></pre>
+            </div>
           </article>
+
           <article>
             <span class="step-number">3</span>
             <h3>Convert</h3>
             <p>Run the conversion directly in your terminal or scripts.</p>
-            <pre><code>mediaconv doctor
-mediaconv convert "video.webm"
-mediaconv convert "camera.mov" --output "camera.mp4"
-mediaconv convert "song.wav" --to mp3
-mediaconv batch "./media" --to mp4 --output-dir "./converted"</code></pre>
+            <div class="snippet" data-snippet>
+              <div class="snippet-bar">
+                <div class="snippet-tabs" role="tablist" aria-label="Conversion">
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="true" data-panel="video">Video</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="audio">Audio</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="webm">WebM</button>
+                  <button class="snippet-tab" type="button" role="tab" aria-selected="false" data-panel="batch">Batch</button>
+                </div>
+                <button class="snippet-copy" type="button" aria-label="Copy command">Copy</button>
+              </div>
+              <pre data-panel="video"><code><span class="comment"># Check FFmpeg and the codecs first</span>
+<span class="cmd">mediaconv doctor</span>
+<span class="cmd">mediaconv convert "recording.webm"</span>
+<span class="cmd">mediaconv convert "camera.mov" --output "camera.mp4"</span></code></pre>
+              <pre data-panel="audio"><code><span class="cmd">mediaconv convert "song.wav" --to mp3</span>
+<span class="cmd">mediaconv convert "audiobook.m4b" --to mp3</span></code></pre>
+              <pre data-panel="webm"><code><span class="comment"># Royalty-free VP9 and Opus</span>
+<span class="cmd">mediaconv convert "clip.mp4" --to webm</span></code></pre>
+              <pre data-panel="batch"><code><span class="comment"># Four files at a time</span>
+<span class="cmd">mediaconv batch "./recordings" --to mp4 --jobs 4</span>
+<span class="cmd">mediaconv batch "./audio" --to mp3 --output-dir "./converted"</span></code></pre>
+            </div>
           </article>
         </div>
       </section>
@@ -240,5 +285,6 @@ mediaconv batch "./media" --to mp4 --output-dir "./converted"</code></pre>
         Full documentation
       </a>
     </footer>
+    <script src="./snippets.js" defer></script>
   </body>
 </html>
