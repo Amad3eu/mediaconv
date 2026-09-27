@@ -7,6 +7,12 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Alterado
+
+- A gravação do terminal passa a mostrar o `doctor` com as verificações de VP9,
+  Opus e WebM, além de `--jobs` e de uma conversão para WebM, refletindo o que
+  a v0.6.0 faz.
+
 ## [0.6.0] - 2026-09-27
 
 ### Adicionado
