@@ -177,16 +177,16 @@ install it with your system package manager:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./mediaconv_0.3.0_linux_amd64.deb
+sudo apt install ./mediaconv_0.5.0_linux_amd64.deb
 
 # Fedora / RHEL
-sudo dnf install ./mediaconv_0.3.0_linux_amd64.rpm
+sudo dnf install ./mediaconv_0.5.0_linux_amd64.rpm
 
 # Alpine
-sudo apk add --allow-untrusted ./mediaconv_0.3.0_linux_amd64.apk
+sudo apk add --allow-untrusted ./mediaconv_0.5.0_linux_amd64.apk
 ```
 
-The package names above use `0.3.0` as an example. Use the latest available
+The package names above use `0.5.0` as an example. Use the latest available
 version from the release page.
 
 ### Windows with Scoop

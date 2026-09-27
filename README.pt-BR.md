@@ -170,16 +170,16 @@ com o gerenciador do sistema:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./mediaconv_0.3.0_linux_amd64.deb
+sudo apt install ./mediaconv_0.5.0_linux_amd64.deb
 
 # Fedora / RHEL
-sudo dnf install ./mediaconv_0.3.0_linux_amd64.rpm
+sudo dnf install ./mediaconv_0.5.0_linux_amd64.rpm
 
 # Alpine
-sudo apk add --allow-untrusted ./mediaconv_0.3.0_linux_amd64.apk
+sudo apk add --allow-untrusted ./mediaconv_0.5.0_linux_amd64.apk
 ```
 
-Os nomes acima usam `0.3.0` como exemplo. Use sempre a versão mais recente da
+Os nomes acima usam `0.5.0` como exemplo. Use sempre a versão mais recente da
 página de release.
 
 ### Windows com Scoop
