@@ -51,6 +51,16 @@ var targets = []Target{
 		DefaultPreset:   "music",
 		BatchExtensions: []string{".wav", ".flac", ".m4a", ".m4b", ".aac", ".ogg", ".oga", ".opus"},
 	},
+	{
+		Name:            "m4a",
+		DefaultPreset:   "aac",
+		BatchExtensions: []string{".wav", ".flac", ".m4b", ".aac", ".ogg", ".oga", ".opus", ".mp3"},
+	},
+	{
+		Name:            "wav",
+		DefaultPreset:   "master",
+		BatchExtensions: []string{".flac", ".m4a", ".m4b", ".aac", ".ogg", ".oga", ".opus", ".mp3"},
+	},
 }
 
 // Targets lists every supported output format.
@@ -93,7 +103,9 @@ func (Registry) Formats() []SupportedFormat {
 	videoSources := []string{"webm", "mov", "qt", "mkv", "avi", "mp4", "m4v"}
 	webmSources := []string{"mp4", "m4v", "mov", "qt", "mkv", "avi", "webm"}
 	audioSources := []string{"wav", "flac", "m4a", "m4b", "aac", "ogg", "oga", "opus", "mp3"}
-	formats := make([]SupportedFormat, 0, len(videoSources)+len(webmSources)+len(audioSources))
+	m4aSources := []string{"wav", "flac", "m4b", "aac", "ogg", "oga", "opus", "mp3", "m4a"}
+	wavSources := []string{"flac", "m4a", "m4b", "aac", "ogg", "oga", "opus", "mp3", "wav"}
+	formats := make([]SupportedFormat, 0, len(videoSources)+len(webmSources)+len(m4aSources)+len(wavSources)+len(audioSources))
 	for _, source := range videoSources {
 		formats = append(formats, SupportedFormat{
 			Source:      source,
@@ -112,6 +124,26 @@ func (Registry) Formats() []SupportedFormat {
 			VideoCodec:  "vp9 (libvpx-vp9)",
 			AudioCodec:  "opus (libopus)",
 			Description: "Royalty-free WebM for the web, without H.264 patent licensing",
+		})
+	}
+	for _, source := range m4aSources {
+		formats = append(formats, SupportedFormat{
+			Source:      source,
+			Target:      "m4a",
+			Profile:     "aac",
+			VideoCodec:  "none",
+			AudioCodec:  "aac",
+			Description: "AAC audio in an M4A container, for phones and modern players",
+		})
+	}
+	for _, source := range wavSources {
+		formats = append(formats, SupportedFormat{
+			Source:      source,
+			Target:      "wav",
+			Profile:     "master",
+			VideoCodec:  "none",
+			AudioCodec:  "pcm_s16le",
+			Description: "Uncompressed PCM, for editing and as an intermediate",
 		})
 	}
 	for _, source := range audioSources {
@@ -143,6 +175,10 @@ func (Registry) Plan(inputPath, outputPath, target, preset string, info media.In
 		return planStreamWebM(inputPath, outputPath, preset, info, capabilities)
 	case "mp3":
 		return planMusicMP3(inputPath, outputPath, preset, info, capabilities)
+	case "m4a":
+		return planAacM4A(inputPath, outputPath, preset, info, capabilities)
+	case "wav":
+		return planMasterWAV(inputPath, outputPath, preset, info, capabilities)
 	default:
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedTarget, target)
 	}
@@ -402,6 +438,120 @@ func verifyWebM(plan media.Plan, info media.Info) error {
 	return nil
 }
 
+// planAudioOnly is the shape the audio profiles share: one stream in, one
+// stream out, everything else dropped, with the codec and container decided by
+// the caller.
+func planAudioOnly(
+	inputPath, outputPath, target, profileName string,
+	audio media.AudioSettings, muxer string,
+	info media.Info,
+) (media.Plan, error) {
+	sourceFormat, ok := supportedAudioSource(inputPath, info.FormatNames)
+	if !ok {
+		return media.Plan{}, fmt.Errorf(
+			"%w: ffprobe detected %q instead of wav, flac, m4a, aac, ogg, or mp3",
+			ErrUnsupportedInput,
+			strings.Join(info.FormatNames, ","),
+		)
+	}
+	if len(info.AudioStreams()) == 0 {
+		return media.Plan{}, fmt.Errorf("%w: no audio stream was found", ErrUnsupportedInput)
+	}
+
+	upper := strings.ToUpper(target)
+	warnings := make([]string, 0)
+	if len(info.VideoStreams()) > 0 {
+		warnings = append(warnings, fmt.Sprintf("Video streams are not included in the %s output.", upper))
+	}
+	if len(info.AudioStreams()) > 1 {
+		warnings = append(warnings, "Only the first audio stream will be converted.")
+	}
+	if len(info.SubtitleStreams()) > 0 {
+		warnings = append(warnings, fmt.Sprintf("Subtitle streams are not included in the %s output.", upper))
+	}
+	if info.ChapterCount > 0 {
+		warnings = append(warnings, fmt.Sprintf("Chapters are not included in the %s output.", upper))
+	}
+	if inputExtensionDoesNotMatchSource(inputPath, sourceFormat) {
+		warnings = append(warnings, fmt.Sprintf("The input is detected as %s even though its file extension is %s.", strings.ToUpper(sourceFormat), strings.ToLower(filepath.Ext(inputPath))))
+	}
+
+	return media.Plan{
+		InputPath:     inputPath,
+		OutputPath:    outputPath,
+		SourceFormat:  sourceFormat,
+		TargetFormat:  target,
+		Muxer:         muxer,
+		Profile:       profileName,
+		AudioMap:      "0:a:0",
+		Audio:         &audio,
+		CopyMetadata:  true,
+		DropChapters:  true,
+		Warnings:      warnings,
+		InputDuration: info.Duration,
+	}, nil
+}
+
+// planAacM4A writes AAC into an M4A container. FFmpeg has no muxer named m4a;
+// the container is written with ipod, which is why the plan carries the muxer
+// name separately from the extension the user asked for.
+func planAacM4A(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	if preset != "aac" {
+		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
+	}
+	if !capabilities.HasEncoder("aac") {
+		return media.Plan{}, fmt.Errorf("%w: AAC encoder", ErrMissingCapability)
+	}
+	if !capabilities.HasMuxer("ipod") && !capabilities.HasMuxer("mp4") {
+		return media.Plan{}, fmt.Errorf("%w: M4A muxer", ErrMissingCapability)
+	}
+	return planAudioOnly(
+		inputPath, outputPath, "m4a", "aac",
+		media.AudioSettings{Codec: "aac", BitRate: "192k"},
+		"ipod", info,
+	)
+}
+
+// planMasterWAV writes uncompressed PCM. There is no bitrate to choose: the
+// sample format fixes it, so the plan leaves it empty and the adapter omits
+// -b:a rather than passing a value PCM would ignore.
+func planMasterWAV(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	if preset != "master" {
+		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
+	}
+	if !capabilities.HasEncoder("pcm_s16le") {
+		return media.Plan{}, fmt.Errorf("%w: pcm_s16le encoder", ErrMissingCapability)
+	}
+	if !capabilities.HasMuxer("wav") {
+		return media.Plan{}, fmt.Errorf("%w: WAV muxer", ErrMissingCapability)
+	}
+	return planAudioOnly(
+		inputPath, outputPath, "wav", "master",
+		media.AudioSettings{Codec: "pcm_s16le"},
+		"", info,
+	)
+}
+
+// verifyAudio is the check the audio targets share: right container, right
+// codec, and a duration that did not drift.
+func verifyAudio(plan media.Plan, info media.Info, label string, containers []string, codec string) error {
+	matched := false
+	for _, container := range containers {
+		if hasFormat(info.FormatNames, container) {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		return fmt.Errorf("ffprobe did not detect a %s container", strings.ToUpper(label))
+	}
+	audios := info.AudioStreams()
+	if len(audios) == 0 || audios[0].CodecName != codec {
+		return fmt.Errorf("output does not contain the expected %s audio stream", codec)
+	}
+	return verifyDuration(plan, info)
+}
+
 func Verify(plan media.Plan, info media.Info) error {
 	if info.Size <= 0 {
 		return fmt.Errorf("output file is empty")
@@ -411,6 +561,10 @@ func Verify(plan media.Plan, info media.Info) error {
 		return verifyWebM(plan, info)
 	case "mp3":
 		return verifyMP3(plan, info)
+	case "m4a":
+		return verifyAudio(plan, info, "m4a", []string{"mov", "mp4"}, "aac")
+	case "wav":
+		return verifyAudio(plan, info, "wav", []string{"wav"}, "pcm_s16le")
 	default:
 		return verifyMP4(plan, info)
 	}
@@ -433,18 +587,25 @@ func verifyMP4(plan media.Plan, info media.Info) error {
 			return fmt.Errorf("output does not contain the expected AAC audio stream")
 		}
 	}
-	if plan.InputDuration > 0 {
-		if info.Duration <= 0 {
-			return fmt.Errorf("output duration could not be verified")
-		}
-		tolerance := maxDuration(2*time.Second, plan.InputDuration/10)
-		if time.Duration(math.Abs(float64(info.Duration-plan.InputDuration))) > tolerance {
-			return fmt.Errorf(
-				"output duration %s differs unexpectedly from input duration %s",
-				info.Duration.Round(time.Millisecond),
-				plan.InputDuration.Round(time.Millisecond),
-			)
-		}
+	return verifyDuration(plan, info)
+}
+
+// verifyDuration catches a conversion that stopped early: the process can exit
+// zero and still leave a file that is half the length of the input.
+func verifyDuration(plan media.Plan, info media.Info) error {
+	if plan.InputDuration <= 0 {
+		return nil
+	}
+	if info.Duration <= 0 {
+		return fmt.Errorf("output duration could not be verified")
+	}
+	tolerance := maxDuration(2*time.Second, plan.InputDuration/10)
+	if time.Duration(math.Abs(float64(info.Duration-plan.InputDuration))) > tolerance {
+		return fmt.Errorf(
+			"output duration %s differs unexpectedly from input duration %s",
+			info.Duration.Round(time.Millisecond),
+			plan.InputDuration.Round(time.Millisecond),
+		)
 	}
 	return nil
 }
