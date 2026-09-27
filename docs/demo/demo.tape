@@ -17,7 +17,7 @@ Set FontSize 16
 Set Width 1280
 # Tall enough for the whole session to stay on screen at the end, so the last
 # frame doubles as a summary. Raise this if the commands below grow.
-Set Height 440
+Set Height 520
 Set Padding 24
 Set BorderRadius 10
 Set TypingSpeed 55ms
@@ -47,6 +47,10 @@ Sleep 7s
 Type "mediaconv convert recording.webm" Sleep 500ms Enter
 Sleep 2500ms
 
-# 4. Convert a whole folder of audio to MP3.
-Type "mediaconv batch ./clips --to mp3" Sleep 500ms Enter
-Sleep 3500ms
+# 4. Convert a whole folder, several files at a time.
+Type "mediaconv batch ./clips --to mp3 --jobs 4" Sleep 500ms Enter
+Sleep 3s
+
+# 5. The royalty-free profile: VP9 and Opus in a WebM container.
+Type "mediaconv convert clipe.mp4 --to webm" Sleep 500ms Enter
+Sleep 4s

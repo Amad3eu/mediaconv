@@ -30,6 +30,13 @@ ffmpeg -v error -y \
 	-c:a libopus \
 	"$DEMO_DIR/recording.webm"
 
+# Um clipe curto e pequeno: VP9 e lento, e o demo nao deve virar uma espera.
+ffmpeg -v error -y \
+	-f lavfi -i "testsrc2=size=480x270:rate=24:duration=2" \
+	-f lavfi -i "sine=frequency=440:duration=2" \
+	-c:v libx264 -crf 23 -c:a aac -pix_fmt yuv420p \
+	"$DEMO_DIR/clipe.mp4"
+
 for name in intro outro; do
 	ffmpeg -v error -y \
 		-f lavfi -i "sine=frequency=330:duration=3" \
