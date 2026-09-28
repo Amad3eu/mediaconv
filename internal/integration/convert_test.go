@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/Amad3eu/mediaconv/internal/app"
 )
@@ -208,6 +209,43 @@ func TestConvertWAVToMP3(t *testing.T) {
 // The audio targets both have a trap the unit tests can only describe: PCM
 // rejects a bitrate, and FFmpeg has no muxer named m4a. Only a real run proves
 // the adapter got them right.
+// The preview is the one target whose output is meant to differ from its
+// input: shorter, smaller and at a lower frame rate. Counting the frames is
+// the only way to know the trim and the frame rate both took effect.
+func TestConvertMOVToGIFPreview(t *testing.T) {
+	requireFFmpeg(t)
+	directory := t.TempDir()
+	input := filepath.Join(directory, "camera.mov")
+	output := filepath.Join(directory, "camera.gif")
+	generateMOV(t, input)
+
+	result, err := app.New(app.Config{}).Convert(context.Background(), app.ConvertRequest{
+		InputPath: input, OutputPath: output, Target: "gif",
+	}, nil)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+
+	if result.Plan.Profile != "preview" {
+		t.Errorf("Profile = %q, want preview", result.Plan.Profile)
+	}
+	videos := result.OutputInfo.VideoStreams()
+	if len(videos) == 0 || videos[0].CodecName != "gif" {
+		t.Fatalf("video codec = %+v, want gif", videos)
+	}
+	if videos[0].Width != 480 {
+		t.Errorf("width = %d, want the preview width of 480", videos[0].Width)
+	}
+	if len(result.OutputInfo.AudioStreams()) != 0 {
+		t.Errorf("GIF output carries audio: %+v", result.OutputInfo.AudioStreams())
+	}
+	// A preview never runs longer than the trim, whatever the source length.
+	if result.OutputInfo.Duration > 6*time.Second {
+		t.Errorf("preview duration = %s, want at most the five second trim", result.OutputInfo.Duration)
+	}
+	assertNoStagingDirectories(t, directory)
+}
+
 func TestConvertWAVToM4AAndBack(t *testing.T) {
 	requireFFmpeg(t)
 	directory := t.TempDir()

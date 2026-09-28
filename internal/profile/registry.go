@@ -52,6 +52,12 @@ var targets = []Target{
 		BatchExtensions: []string{".wav", ".flac", ".m4a", ".m4b", ".aac", ".ogg", ".oga", ".opus"},
 	},
 	{
+		Name:          "gif",
+		DefaultPreset: "preview",
+		// GIF is made from video, so the sources are the video containers.
+		BatchExtensions: []string{".mp4", ".m4v", ".mov", ".qt", ".mkv", ".avi", ".webm"},
+	},
+	{
 		Name:            "m4a",
 		DefaultPreset:   "aac",
 		BatchExtensions: []string{".wav", ".flac", ".m4b", ".aac", ".ogg", ".oga", ".opus", ".mp3"},
@@ -103,9 +109,10 @@ func (Registry) Formats() []SupportedFormat {
 	videoSources := []string{"webm", "mov", "qt", "mkv", "avi", "mp4", "m4v"}
 	webmSources := []string{"mp4", "m4v", "mov", "qt", "mkv", "avi", "webm"}
 	audioSources := []string{"wav", "flac", "m4a", "m4b", "aac", "ogg", "oga", "opus", "mp3"}
+	gifSources := []string{"mp4", "m4v", "mov", "qt", "mkv", "avi", "webm"}
 	m4aSources := []string{"wav", "flac", "m4b", "aac", "ogg", "oga", "opus", "mp3", "m4a"}
 	wavSources := []string{"flac", "m4a", "m4b", "aac", "ogg", "oga", "opus", "mp3", "wav"}
-	formats := make([]SupportedFormat, 0, len(videoSources)+len(webmSources)+len(m4aSources)+len(wavSources)+len(audioSources))
+	formats := make([]SupportedFormat, 0, len(videoSources)+len(webmSources)+len(gifSources)+len(m4aSources)+len(wavSources)+len(audioSources))
 	for _, source := range videoSources {
 		formats = append(formats, SupportedFormat{
 			Source:      source,
@@ -124,6 +131,16 @@ func (Registry) Formats() []SupportedFormat {
 			VideoCodec:  "vp9 (libvpx-vp9)",
 			AudioCodec:  "opus (libopus)",
 			Description: "Royalty-free WebM for the web, without H.264 patent licensing",
+		})
+	}
+	for _, source := range gifSources {
+		formats = append(formats, SupportedFormat{
+			Source:      source,
+			Target:      "gif",
+			Profile:     "preview",
+			VideoCodec:  "gif",
+			AudioCodec:  "none",
+			Description: "Short looping preview, five seconds at 480 pixels wide",
 		})
 	}
 	for _, source := range m4aSources {
@@ -179,6 +196,8 @@ func (Registry) Plan(inputPath, outputPath, target, preset string, info media.In
 		return planAacM4A(inputPath, outputPath, preset, info, capabilities)
 	case "wav":
 		return planMasterWAV(inputPath, outputPath, preset, info, capabilities)
+	case "gif":
+		return planPreviewGIF(inputPath, outputPath, preset, info, capabilities)
 	default:
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedTarget, target)
 	}
@@ -552,6 +571,100 @@ func verifyAudio(plan media.Plan, info media.Info, label string, containers []st
 	return verifyDuration(plan, info)
 }
 
+// Preview defaults. A preview is meant to be glanceable and small enough to
+// drop into a chat or a readme, so it is short, narrow and low frame rate.
+const (
+	previewWidth    = 480
+	previewFPS      = 10
+	previewDuration = 5 * time.Second
+)
+
+// planPreviewGIF builds a short looping GIF.
+//
+// A GIF holds at most 256 colors, so a good one needs a palette computed from
+// the clip itself rather than a generic one. FFmpeg can do that in a single
+// pass: split the stream, let palettegen read one branch and paletteuse apply
+// it to the other. The two-pass form with an intermediate palette file gives a
+// byte-identical result here, so the simpler graph is the one worth carrying.
+func planPreviewGIF(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	if preset != "preview" {
+		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
+	}
+	sourceFormat, ok := supportedVideoSource(inputPath, info.FormatNames)
+	if !ok {
+		return media.Plan{}, fmt.Errorf(
+			"%w: ffprobe detected %q instead of mp4, mov, mkv, avi, or webm",
+			ErrUnsupportedInput,
+			strings.Join(info.FormatNames, ","),
+		)
+	}
+
+	videos := info.VideoStreams()
+	if len(videos) == 0 {
+		return media.Plan{}, fmt.Errorf("%w: no video stream was found", ErrUnsupportedInput)
+	}
+	if !capabilities.HasEncoder("gif") {
+		return media.Plan{}, fmt.Errorf("%w: GIF encoder", ErrMissingCapability)
+	}
+	if !capabilities.HasMuxer("gif") {
+		return media.Plan{}, fmt.Errorf("%w: GIF muxer", ErrMissingCapability)
+	}
+
+	trim := previewDuration
+	if info.Duration > 0 && info.Duration < trim {
+		trim = info.Duration
+	}
+
+	warnings := []string{
+		fmt.Sprintf("The preview is the first %s of the input, at %d pixels wide and %d frames per second.",
+			trim.Round(time.Second), previewWidth, previewFPS),
+	}
+	if len(info.AudioStreams()) > 0 {
+		warnings = append(warnings, "GIF has no audio; the sound is not included.")
+	}
+	if info.Duration > trim {
+		warnings = append(warnings, "Only the beginning of the input becomes the preview.")
+	}
+	if inputExtensionDoesNotMatchSource(inputPath, sourceFormat) {
+		warnings = append(warnings, fmt.Sprintf("The input is detected as %s even though its file extension is %s.", strings.ToUpper(sourceFormat), strings.ToLower(filepath.Ext(inputPath))))
+	}
+
+	return media.Plan{
+		InputPath:    inputPath,
+		OutputPath:   outputPath,
+		SourceFormat: sourceFormat,
+		TargetFormat: "gif",
+		Profile:      "preview",
+		VideoMap:     "0:v:0",
+		Video: &media.VideoSettings{
+			Codec: "gif",
+			// One graph, not a chain: palettegen and paletteuse need named
+			// branches, which a comma-separated list cannot express.
+			Filters: []string{fmt.Sprintf(
+				"fps=%d,scale=%d:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse",
+				previewFPS, previewWidth,
+			)},
+		},
+		TrimDuration:  trim,
+		Warnings:      warnings,
+		InputDuration: info.Duration,
+	}, nil
+}
+
+func verifyGIF(plan media.Plan, info media.Info) error {
+	if !hasFormat(info.FormatNames, "gif") {
+		return fmt.Errorf("ffprobe did not detect a GIF")
+	}
+	videos := info.VideoStreams()
+	if len(videos) == 0 || videos[0].CodecName != "gif" {
+		return fmt.Errorf("output does not contain the expected GIF stream")
+	}
+	if videos[0].Width <= 0 || videos[0].Height <= 0 {
+		return fmt.Errorf("output has no dimensions")
+	}
+	return verifyDuration(plan, info)
+}
+
 func Verify(plan media.Plan, info media.Info) error {
 	if info.Size <= 0 {
 		return fmt.Errorf("output file is empty")
@@ -565,6 +678,8 @@ func Verify(plan media.Plan, info media.Info) error {
 		return verifyAudio(plan, info, "m4a", []string{"mov", "mp4"}, "aac")
 	case "wav":
 		return verifyAudio(plan, info, "wav", []string{"wav"}, "pcm_s16le")
+	case "gif":
+		return verifyGIF(plan, info)
 	default:
 		return verifyMP4(plan, info)
 	}
@@ -593,18 +708,24 @@ func verifyMP4(plan media.Plan, info media.Info) error {
 // verifyDuration catches a conversion that stopped early: the process can exit
 // zero and still leave a file that is half the length of the input.
 func verifyDuration(plan media.Plan, info media.Info) error {
-	if plan.InputDuration <= 0 {
+	expected := plan.InputDuration
+	// A trimmed output is meant to be shorter than its source, so the source
+	// is the wrong thing to compare it against.
+	if plan.TrimDuration > 0 && plan.TrimDuration < expected {
+		expected = plan.TrimDuration
+	}
+	if expected <= 0 {
 		return nil
 	}
 	if info.Duration <= 0 {
 		return fmt.Errorf("output duration could not be verified")
 	}
-	tolerance := maxDuration(2*time.Second, plan.InputDuration/10)
-	if time.Duration(math.Abs(float64(info.Duration-plan.InputDuration))) > tolerance {
+	tolerance := maxDuration(2*time.Second, expected/10)
+	if time.Duration(math.Abs(float64(info.Duration-expected))) > tolerance {
 		return fmt.Errorf(
-			"output duration %s differs unexpectedly from input duration %s",
+			"output duration %s differs unexpectedly from the expected %s",
 			info.Duration.Round(time.Millisecond),
-			plan.InputDuration.Round(time.Millisecond),
+			expected.Round(time.Millisecond),
 		)
 	}
 	return nil

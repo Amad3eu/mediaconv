@@ -210,8 +210,8 @@ O desenvolvimento exige Go 1.26 ou mais recente.
 ## Comandos
 
 ```text
-mediaconv convert INPUT [--to mp4|webm|mp3|m4a|wav] [-o SAÍDA] [--preset web|stream|music|aac|master] [--overwrite]
-mediaconv batch DIRETÓRIO [--to mp4|webm|mp3|m4a|wav] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
+mediaconv convert INPUT [--to mp4|webm|gif|mp3|m4a|wav] [-o SAÍDA] [--preset web|stream|preview|music|aac|master] [--overwrite]
+mediaconv batch DIRETÓRIO [--to mp4|webm|gif|mp3|m4a|wav] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -311,7 +311,6 @@ discos removíveis ou compartilhamentos de rede.
 
 ## Próximos passos
 
-- Perfis adicionais, como prévias em GIF.
 - Repositórios nativos para `apt`, `dnf` e `apk`.
 - Aceleração por hardware após a criação de testes específicos por capacidade.
 

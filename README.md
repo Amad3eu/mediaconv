@@ -48,6 +48,7 @@ Use MediaConv when you want:
 
 - Local video to MP4 conversion with a compatibility-focused profile.
 - Local video to WebM conversion with VP9 and Opus, for the open web.
+- Short looping GIF previews, with a palette computed from the clip itself.
 - Local audio to MP3, M4A and WAV conversion with dedicated profiles.
 - Interactive progress when stderr is a terminal; clean output in scripts.
 - No overwrite unless `--overwrite` is explicitly provided.
@@ -80,6 +81,9 @@ mediaconv convert "song.wav" --to mp3
 # Convert to royalty-free WebM.
 mediaconv convert "clip.mp4" --to webm
 
+# Make a short looping preview.
+mediaconv convert "recording.mp4" --to gif
+
 # Convert audio to AAC, or to uncompressed PCM for editing.
 mediaconv convert "song.flac" --to m4a
 mediaconv convert "song.mp3" --to wav
@@ -105,7 +109,8 @@ Latest release: <https://github.com/Amad3eu/mediaconv/releases/latest>
 MediaConv does not bundle or download FFmpeg. Install `ffmpeg` and `ffprobe`
 before using it. The `web` profile requires `libx264`, AAC encoding, and MP4
 muxing. The `stream` profile requires `libvpx-vp9`, `libopus`, and WebM
-muxing. The `music` profile requires `libmp3lame` and MP3 muxing. The `aac` profile
+muxing. The `preview` profile requires GIF encoding and muxing. The `music`
+profile requires `libmp3lame` and MP3 muxing. The `aac` profile
 requires AAC encoding and M4A muxing, and the `master` profile requires
 `pcm_s16le` and WAV muxing.
 
@@ -223,8 +228,8 @@ Development requires Go 1.26 or newer.
 ## Commands
 
 ```text
-mediaconv convert INPUT [--to mp4|webm|mp3|m4a|wav] [-o OUTPUT] [--preset web|stream|music|aac|master] [--overwrite]
-mediaconv batch DIRECTORY [--to mp4|webm|mp3|m4a|wav] [-o OUTPUT_DIR] [--recursive] [--overwrite] [-j JOBS]
+mediaconv convert INPUT [--to mp4|webm|gif|mp3|m4a|wav] [-o OUTPUT] [--preset web|stream|preview|music|aac|master] [--overwrite]
+mediaconv batch DIRECTORY [--to mp4|webm|gif|mp3|m4a|wav] [-o OUTPUT_DIR] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -296,6 +301,7 @@ every run. An explicit `--color always` wins over `NO_COLOR`.
 | AAC | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
 | OGG / OGA / OPUS | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
 | MP3 | MP3 | `music` | none | MP3 (`libmp3lame`) 192 kbit/s | Stable |
+| MP4 / M4V / MOV / MKV / AVI / WebM | GIF | `preview` | GIF (palette from the clip) | none | Stable |
 | WAV / FLAC / M4B / AAC / OGG / OPUS / MP3 / M4A | M4A | `aac` | none | AAC 192 kbit/s | Stable |
 | FLAC / M4A / M4B / AAC / OGG / OPUS / MP3 / WAV | WAV | `master` | none | PCM signed 16-bit | Stable |
 
@@ -310,6 +316,12 @@ audio stream to VP9 and Opus in a WebM container. It encodes at CRF 32 with the
 several times the encode time for a difference most viewers will not see. Reach
 for WebM when you want an open, royalty-free codec; whether the result is
 smaller than the H.264 equivalent depends on the source material.
+
+The `preview` profile makes a short looping GIF: the first five seconds, 480
+pixels wide, at 10 frames per second. A GIF holds at most 256 colors, so the
+palette is computed from the clip itself rather than taken from a generic one,
+which is what keeps gradients from banding. Start offset and length are not
+configurable yet.
 
 The `aac` profile writes AAC at 192 kbit/s into an M4A container, which is what
 most phones and players expect. The `master` profile writes uncompressed PCM,
@@ -337,7 +349,6 @@ filesystems, but may not be available on some removable or network filesystems.
 
 ## Roadmap
 
-- Additional profiles such as GIF previews.
 - Native package repositories for `apt`, `dnf`, and `apk`.
 - Optional hardware acceleration after capability-specific tests are available.
 
