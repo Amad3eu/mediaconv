@@ -531,3 +531,52 @@ func TestBuildArgsRespectsMuxerAndOptionalBitRate(t *testing.T) {
 		t.Errorf("AAC args lost the bitrate\ngot: %s", joined)
 	}
 }
+
+// A preview is a trim, and GIF takes neither a quality setting nor a pixel
+// format. Getting any of the three wrong fails inside FFmpeg, not in Go.
+func TestBuildArgsForATrimmedGIF(t *testing.T) {
+	t.Parallel()
+
+	plan := media.Plan{
+		InputPath:    "in.mp4",
+		TargetFormat: "gif",
+		VideoMap:     "0:v:0",
+		Video: &media.VideoSettings{
+			Codec:   "gif",
+			Filters: []string{"fps=10,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"},
+		},
+		TrimStart:    2 * time.Second,
+		TrimDuration: 5 * time.Second,
+	}
+	args := BuildArgs(plan, "out.gif")
+	joined := strings.Join(args, " ")
+
+	if !strings.Contains(joined, "-ss 2.000") {
+		t.Errorf("args lost the trim start\ngot: %s", joined)
+	}
+	if !strings.Contains(joined, "-t 5.000") {
+		t.Errorf("args lost the trim duration\ngot: %s", joined)
+	}
+	// Seeking before -i jumps instead of decoding, which is the difference
+	// between instant and slow on a long input.
+	if strings.Index(joined, "-ss") > strings.Index(joined, "-i") {
+		t.Errorf("-ss must come before -i to seek without decoding\ngot: %s", joined)
+	}
+	if strings.Contains(joined, "-pix_fmt") {
+		t.Errorf("GIF args force a pixel format, which fights paletteuse\ngot: %s", joined)
+	}
+	if strings.Contains(joined, "-crf") || strings.Contains(joined, "-preset") {
+		t.Errorf("GIF args carry a quality setting the encoder does not take\ngot: %s", joined)
+	}
+	if !strings.Contains(joined, "palettegen") || !strings.Contains(joined, "paletteuse") {
+		t.Errorf("args lost the palette graph\ngot: %s", joined)
+	}
+	// Audio is excluded by mapping only the video stream, not by -vn, which
+	// belongs to plans that have no video at all.
+	if !strings.Contains(joined, "-map 0:v:0") {
+		t.Errorf("args lost the video mapping\ngot: %s", joined)
+	}
+	if strings.Contains(joined, "-c:a") || strings.Contains(joined, "0:a:0") {
+		t.Errorf("GIF args reference audio, which the container cannot hold\ngot: %s", joined)
+	}
+}

@@ -102,6 +102,11 @@ type Plan struct {
 	DropChapters  bool           `json:"drop_chapters"`
 	Warnings      []string       `json:"warnings,omitempty"`
 	InputDuration time.Duration  `json:"-"`
+	// TrimStart and TrimDuration limit the conversion to part of the input.
+	// Zero means the whole file. A preview is a trim, so the verification
+	// compares the output against the trim rather than against the source.
+	TrimStart    time.Duration `json:"-"`
+	TrimDuration time.Duration `json:"-"`
 }
 
 type Progress struct {

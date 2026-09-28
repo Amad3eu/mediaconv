@@ -3,6 +3,7 @@ package ffmpeg
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Amad3eu/mediaconv/internal/media"
 )
@@ -17,7 +18,16 @@ func BuildArgs(plan media.Plan, temporaryOutput string) []string {
 		"-progress", "pipe:1",
 		"-n",
 		"-protocol_whitelist", "file",
-		"-i", plan.InputPath,
+	}
+
+	// -ss before -i seeks by jumping rather than decoding, which matters when
+	// a preview starts deep into a long file.
+	if plan.TrimStart > 0 {
+		args = append(args, "-ss", seconds(plan.TrimStart))
+	}
+	args = append(args, "-i", plan.InputPath)
+	if plan.TrimDuration > 0 {
+		args = append(args, "-t", seconds(plan.TrimDuration))
 	}
 
 	if plan.Video != nil {
@@ -31,7 +41,11 @@ func BuildArgs(plan media.Plan, temporaryOutput string) []string {
 	if plan.Video != nil {
 		args = append(args, "-c:v", plan.Video.Codec)
 		args = append(args, videoQualityArgs(plan.Video)...)
-		args = append(args, "-pix_fmt", plan.Video.PixelFormat)
+		// GIF carries its palette in the file, so forcing a pixel format on it
+		// would fight paletteuse.
+		if plan.Video.PixelFormat != "" {
+			args = append(args, "-pix_fmt", plan.Video.PixelFormat)
+		}
 		if len(plan.Video.Filters) > 0 {
 			args = append(args, "-vf", strings.Join(plan.Video.Filters, ","))
 		}
@@ -68,6 +82,11 @@ func outputFormat(plan media.Plan) string {
 	return plan.TargetFormat
 }
 
+// seconds formats a duration the way FFmpeg reads -ss and -t.
+func seconds(d time.Duration) string {
+	return strconv.FormatFloat(d.Seconds(), 'f', 3, 64)
+}
+
 // videoQualityArgs maps the plan's quality intent onto the flags the chosen
 // encoder actually understands. The profile says "constant quality at this CRF,
 // at this speed"; translating that is the adapter's job, per ADR 0003.
@@ -77,6 +96,10 @@ func outputFormat(plan media.Plan) string {
 // the same control -deadline, and stays single threaded without -row-mt.
 func videoQualityArgs(video *media.VideoSettings) []string {
 	switch video.Codec {
+	case "gif":
+		// The GIF encoder takes neither a CRF nor a speed preset: quality is
+		// decided by the palette and the frame rate, both set as filters.
+		return nil
 	case "libvpx-vp9":
 		return []string{
 			"-b:v", "0",

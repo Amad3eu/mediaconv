@@ -30,6 +30,10 @@ func TestRegistryFormats(t *testing.T) {
 		"qt->webm (stream)", "mkv->webm (stream)", "avi->webm (stream)",
 		"webm->webm (stream)",
 
+		"mp4->gif (preview)", "m4v->gif (preview)", "mov->gif (preview)",
+		"qt->gif (preview)", "mkv->gif (preview)", "avi->gif (preview)",
+		"webm->gif (preview)",
+
 		"wav->m4a (aac)", "flac->m4a (aac)", "m4b->m4a (aac)",
 		"aac->m4a (aac)", "ogg->m4a (aac)", "oga->m4a (aac)",
 		"opus->m4a (aac)", "mp3->m4a (aac)", "m4a->m4a (aac)",

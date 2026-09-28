@@ -9,6 +9,9 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Adicionado
 
+- Perfil `preview`, que gera uma prévia em GIF de cinco segundos com paleta
+  calculada a partir do próprio clipe. Use `--to gif`.
+- Verificações do codificador e do muxer GIF no `mediaconv doctor`.
 - Perfil `aac`, que escreve áudio AAC em um container M4A. Use `--to m4a`.
 - Perfil `master`, que escreve PCM sem compressão. Use `--to wav`.
 - Verificações do codificador PCM e dos muxers M4A e WAV no `mediaconv doctor`.
