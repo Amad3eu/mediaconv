@@ -211,7 +211,7 @@ O desenvolvimento exige Go 1.26 ou mais recente.
 
 ```text
 mediaconv convert INPUT [--to mp4|webm|gif|mp3|m4a|wav] [--start D] [--duration D] [-o SAÍDA] [--preset web|stream|preview|music|aac|master] [--overwrite]
-mediaconv batch DIRETÓRIO [--to mp4|webm|gif|mp3|m4a|wav] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
+mediaconv batch DIRETÓRIO [--to mp4|webm|gif|mp3|m4a|wav] [--start D] [--duration D] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -260,8 +260,9 @@ quatro e meça. O valor é limitado à quantidade de arquivos encontrados.
 
 ### Recorte
 
-`--start` e `--duration` limitam a conversão a um trecho da entrada, e valem
-para todos os formatos, não só para prévias. Ambos aceitam uma duração no
+`--start` e `--duration` limitam a conversão a um trecho da entrada. Valem para
+todos os formatos, não só para prévias, e também no `batch`, onde o intervalo se
+aplica a cada arquivo. Ambos aceitam uma duração no
 formato do Go: `8s`, `1m30s`, `2h`. A busca acontece antes da decodificação,
 então começar no meio de um arquivo longo é rápido.
 

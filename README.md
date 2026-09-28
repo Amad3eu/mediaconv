@@ -88,6 +88,9 @@ mediaconv convert "recording.mp4" --to gif
 mediaconv convert "recording.mp4" --to gif --start 1m30s --duration 4s
 mediaconv convert "lecture.mov" --output "clip.mp4" --start 10m --duration 30s
 
+# Preview every video in a folder.
+mediaconv batch "./recordings" --to gif --start 5s --duration 3s
+
 # Convert audio to AAC, or to uncompressed PCM for editing.
 mediaconv convert "song.flac" --to m4a
 mediaconv convert "song.mp3" --to wav
@@ -233,7 +236,7 @@ Development requires Go 1.26 or newer.
 
 ```text
 mediaconv convert INPUT [--to mp4|webm|gif|mp3|m4a|wav] [--start D] [--duration D] [-o OUTPUT] [--preset web|stream|preview|music|aac|master] [--overwrite]
-mediaconv batch DIRECTORY [--to mp4|webm|gif|mp3|m4a|wav] [-o OUTPUT_DIR] [--recursive] [--overwrite] [-j JOBS]
+mediaconv batch DIRECTORY [--to mp4|webm|gif|mp3|m4a|wav] [--start D] [--duration D] [-o OUTPUT_DIR] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
 mediaconv formats
@@ -280,8 +283,9 @@ and measure. The value is capped at the number of files found.
 
 ### Trimming
 
-`--start` and `--duration` limit the conversion to part of the input, and work
-with every target rather than only with previews. Both take a Go duration:
+`--start` and `--duration` limit the conversion to part of the input. They work
+with every target rather than only with previews, and with `batch` as well as
+`convert`, where the range applies to each file. Both take a Go duration:
 `8s`, `1m30s`, `2h`. Seeking happens before decoding, so starting deep into a
 long file is fast.
 
