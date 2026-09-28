@@ -7,6 +7,16 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado
+
+- Opções `--start` e `--duration` no `convert`, que limitam a conversão a um
+  trecho da entrada. Valem para todos os formatos, não só para prévias em GIF.
+
+### Alterado
+
+- Um intervalo impossível passa a ser recusado com mensagem própria e código de
+  saída 2, em vez de ser reportado como entrada não suportada.
+
 ## [0.7.0] - 2026-09-28
 
 ### Adicionado

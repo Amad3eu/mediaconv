@@ -84,6 +84,10 @@ mediaconv convert "clip.mp4" --to webm
 # Make a short looping preview.
 mediaconv convert "recording.mp4" --to gif
 
+# Preview a specific moment, or cut a range out of any conversion.
+mediaconv convert "recording.mp4" --to gif --start 1m30s --duration 4s
+mediaconv convert "lecture.mov" --output "clip.mp4" --start 10m --duration 30s
+
 # Convert audio to AAC, or to uncompressed PCM for editing.
 mediaconv convert "song.flac" --to m4a
 mediaconv convert "song.mp3" --to wav
@@ -228,7 +232,7 @@ Development requires Go 1.26 or newer.
 ## Commands
 
 ```text
-mediaconv convert INPUT [--to mp4|webm|gif|mp3|m4a|wav] [-o OUTPUT] [--preset web|stream|preview|music|aac|master] [--overwrite]
+mediaconv convert INPUT [--to mp4|webm|gif|mp3|m4a|wav] [--start D] [--duration D] [-o OUTPUT] [--preset web|stream|preview|music|aac|master] [--overwrite]
 mediaconv batch DIRECTORY [--to mp4|webm|gif|mp3|m4a|wav] [-o OUTPUT_DIR] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
@@ -273,6 +277,16 @@ FFmpeg already uses several threads per conversion, so the useful range is
 smaller than the core count: throughput usually flattens a few jobs in, and
 past that the conversions only compete for the same cores. Start around four
 and measure. The value is capped at the number of files found.
+
+### Trimming
+
+`--start` and `--duration` limit the conversion to part of the input, and work
+with every target rather than only with previews. Both take a Go duration:
+`8s`, `1m30s`, `2h`. Seeking happens before decoding, so starting deep into a
+long file is fast.
+
+A range that cannot exist, such as an offset at or past the end of the input,
+is refused before any work begins, with exit code 2.
 
 ### Color
 
@@ -320,8 +334,8 @@ smaller than the H.264 equivalent depends on the source material.
 The `preview` profile makes a short looping GIF: the first five seconds, 480
 pixels wide, at 10 frames per second. A GIF holds at most 256 colors, so the
 palette is computed from the clip itself rather than taken from a generic one,
-which is what keeps gradients from banding. Start offset and length are not
-configurable yet.
+which is what keeps gradients from banding. Pass `--start` and `--duration` to pick a different
+moment or length; both take a Go duration such as `1m30s` or `8s`.
 
 The `aac` profile writes AAC at 192 kbit/s into an M4A container, which is what
 most phones and players expect. The `master` profile writes uncompressed PCM,

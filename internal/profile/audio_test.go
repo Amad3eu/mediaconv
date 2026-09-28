@@ -37,8 +37,8 @@ func TestPlanM4ANamesTheIpodMuxer(t *testing.T) {
 	t.Parallel()
 
 	plan, err := (Registry{}).Plan(
-		filepath.Join("in", "song.wav"), filepath.Join("out", "song.m4a"),
-		"m4a", "", wavInput(1), audioCapabilities(),
+		Request{InputPath: filepath.Join("in", "song.wav"), OutputPath: filepath.Join("out", "song.m4a"), Target: "m4a"},
+		wavInput(1), audioCapabilities(),
 	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
@@ -67,8 +67,8 @@ func TestPlanWAVLeavesTheBitRateEmpty(t *testing.T) {
 	t.Parallel()
 
 	plan, err := (Registry{}).Plan(
-		filepath.Join("in", "song.mp3"), filepath.Join("out", "song.wav"),
-		"wav", "", media.Info{
+		Request{InputPath: filepath.Join("in", "song.mp3"), OutputPath: filepath.Join("out", "song.wav"), Target: "wav"},
+		media.Info{
 			FormatNames: []string{"mp3"},
 			Duration:    4 * time.Second,
 			Streams:     []media.Stream{{Index: 0, CodecType: "audio", CodecName: "mp3"}},
@@ -128,8 +128,8 @@ func TestAudioTargetsRequireTheirCapabilities(t *testing.T) {
 			t.Parallel()
 
 			_, err := (Registry{}).Plan(
-				filepath.Join("in", "song.wav"), filepath.Join("out", "song."+test.target),
-				test.target, "", wavInput(1), test.capabilities,
+				Request{InputPath: filepath.Join("in", "song.wav"), OutputPath: filepath.Join("out", "song."+test.target), Target: test.target},
+				wavInput(1), test.capabilities,
 			)
 			if !errors.Is(err, ErrMissingCapability) {
 				t.Errorf("Plan() error = %v, want ErrMissingCapability", err)
@@ -144,10 +144,8 @@ func TestPlanM4AAcceptsTheMP4MuxerAsAFallback(t *testing.T) {
 	t.Parallel()
 
 	_, err := (Registry{}).Plan(
-		filepath.Join("in", "song.wav"), filepath.Join("out", "song.m4a"),
-		"m4a", "",
-		wavInput(1),
-		media.Capabilities{
+		Request{InputPath: filepath.Join("in", "song.wav"), OutputPath: filepath.Join("out", "song.m4a"), Target: "m4a"},
+		wavInput(1), media.Capabilities{
 			Encoders: map[string]bool{"aac": true},
 			Muxers:   map[string]bool{"mp4": true},
 		},
@@ -162,8 +160,8 @@ func TestAudioTargetsRejectAnotherPreset(t *testing.T) {
 
 	for target, wrong := range map[string]string{"m4a": "master", "wav": "aac"} {
 		_, err := (Registry{}).Plan(
-			filepath.Join("in", "song.wav"), filepath.Join("out", "song."+target),
-			target, wrong, wavInput(1), audioCapabilities(),
+			Request{InputPath: filepath.Join("in", "song.wav"), OutputPath: filepath.Join("out", "song."+target), Target: target, Preset: wrong},
+			wavInput(1), audioCapabilities(),
 		)
 		if !errors.Is(err, ErrUnsupportedPreset) {
 			t.Errorf("Plan(%s, preset=%s) error = %v, want ErrUnsupportedPreset", target, wrong, err)
@@ -183,8 +181,8 @@ func TestAudioTargetsWarnAboutWhatIsDropped(t *testing.T) {
 
 	for _, target := range []string{"m4a", "wav"} {
 		plan, err := (Registry{}).Plan(
-			filepath.Join("in", "song.wav"), filepath.Join("out", "song."+target),
-			target, "", info, audioCapabilities(),
+			Request{InputPath: filepath.Join("in", "song.wav"), OutputPath: filepath.Join("out", "song."+target), Target: target},
+			info, audioCapabilities(),
 		)
 		if err != nil {
 			t.Fatalf("Plan(%s) error = %v", target, err)
@@ -199,8 +197,8 @@ func TestVerifyAudioTargets(t *testing.T) {
 	t.Parallel()
 
 	m4a, err := (Registry{}).Plan(
-		filepath.Join("in", "song.wav"), filepath.Join("out", "song.m4a"),
-		"m4a", "", wavInput(1), audioCapabilities(),
+		Request{InputPath: filepath.Join("in", "song.wav"), OutputPath: filepath.Join("out", "song.m4a"), Target: "m4a"},
+		wavInput(1), audioCapabilities(),
 	)
 	if err != nil {
 		t.Fatalf("Plan(m4a) error = %v", err)

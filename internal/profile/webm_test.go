@@ -34,8 +34,8 @@ func TestPlanWebMUsesVP9AndOpus(t *testing.T) {
 	t.Parallel()
 
 	plan, err := (Registry{}).Plan(
-		filepath.Join("in", "clip.mp4"), filepath.Join("out", "clip.webm"),
-		"webm", "", mp4Input(1920, 1080, true), webmCapabilities(),
+		Request{InputPath: filepath.Join("in", "clip.mp4"), OutputPath: filepath.Join("out", "clip.webm"), Target: "webm"},
+		mp4Input(1920, 1080, true), webmCapabilities(),
 	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
@@ -69,8 +69,8 @@ func TestPlanWebMOmitsAudioWhenTheSourceHasNone(t *testing.T) {
 	t.Parallel()
 
 	plan, err := (Registry{}).Plan(
-		filepath.Join("in", "silent.mp4"), filepath.Join("out", "silent.webm"),
-		"webm", "stream", mp4Input(640, 480, false), webmCapabilities(),
+		Request{InputPath: filepath.Join("in", "silent.mp4"), OutputPath: filepath.Join("out", "silent.webm"), Target: "webm", Preset: "stream"},
+		mp4Input(640, 480, false), webmCapabilities(),
 	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
@@ -87,8 +87,8 @@ func TestPlanWebMPadsOddDimensions(t *testing.T) {
 	t.Parallel()
 
 	plan, err := (Registry{}).Plan(
-		filepath.Join("in", "odd.mp4"), filepath.Join("out", "odd.webm"),
-		"webm", "", mp4Input(641, 481, false), webmCapabilities(),
+		Request{InputPath: filepath.Join("in", "odd.mp4"), OutputPath: filepath.Join("out", "odd.webm"), Target: "webm"},
+		mp4Input(641, 481, false), webmCapabilities(),
 	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
@@ -126,8 +126,8 @@ func TestPlanWebMRequiresItsCodecs(t *testing.T) {
 			t.Parallel()
 
 			_, err := (Registry{}).Plan(
-				filepath.Join("in", "clip.mp4"), filepath.Join("out", "clip.webm"),
-				"webm", "", mp4Input(320, 240, test.withAudio), test.capabilities,
+				Request{InputPath: filepath.Join("in", "clip.mp4"), OutputPath: filepath.Join("out", "clip.webm"), Target: "webm"},
+				mp4Input(320, 240, test.withAudio), test.capabilities,
 			)
 			if !errors.Is(err, ErrMissingCapability) {
 				t.Errorf("Plan() error = %v, want ErrMissingCapability", err)
@@ -141,9 +141,8 @@ func TestPlanWebMWithoutAudioDoesNotNeedOpus(t *testing.T) {
 	t.Parallel()
 
 	_, err := (Registry{}).Plan(
-		filepath.Join("in", "silent.mp4"), filepath.Join("out", "silent.webm"),
-		"webm", "", mp4Input(320, 240, false),
-		media.Capabilities{Encoders: map[string]bool{"libvpx-vp9": true}, Muxers: map[string]bool{"webm": true}},
+		Request{InputPath: filepath.Join("in", "silent.mp4"), OutputPath: filepath.Join("out", "silent.webm"), Target: "webm"},
+		mp4Input(320, 240, false), media.Capabilities{Encoders: map[string]bool{"libvpx-vp9": true}, Muxers: map[string]bool{"webm": true}},
 	)
 	if err != nil {
 		t.Errorf("Plan() error = %v, want a plan without Opus", err)
@@ -154,8 +153,8 @@ func TestPlanWebMRejectsAnotherPreset(t *testing.T) {
 	t.Parallel()
 
 	_, err := (Registry{}).Plan(
-		filepath.Join("in", "clip.mp4"), filepath.Join("out", "clip.webm"),
-		"webm", "web", mp4Input(320, 240, true), webmCapabilities(),
+		Request{InputPath: filepath.Join("in", "clip.mp4"), OutputPath: filepath.Join("out", "clip.webm"), Target: "webm", Preset: "web"},
+		mp4Input(320, 240, true), webmCapabilities(),
 	)
 	if !errors.Is(err, ErrUnsupportedPreset) {
 		t.Errorf("Plan() error = %v, want ErrUnsupportedPreset", err)
@@ -166,8 +165,8 @@ func TestVerifyWebMAcceptsExpectedOutput(t *testing.T) {
 	t.Parallel()
 
 	plan, err := (Registry{}).Plan(
-		filepath.Join("in", "clip.mp4"), filepath.Join("out", "clip.webm"),
-		"webm", "", mp4Input(1280, 720, true), webmCapabilities(),
+		Request{InputPath: filepath.Join("in", "clip.mp4"), OutputPath: filepath.Join("out", "clip.webm"), Target: "webm"},
+		mp4Input(1280, 720, true), webmCapabilities(),
 	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
@@ -191,8 +190,8 @@ func TestVerifyWebMRejectsWrongOutput(t *testing.T) {
 	t.Parallel()
 
 	plan, err := (Registry{}).Plan(
-		filepath.Join("in", "clip.mp4"), filepath.Join("out", "clip.webm"),
-		"webm", "", mp4Input(1280, 720, true), webmCapabilities(),
+		Request{InputPath: filepath.Join("in", "clip.mp4"), OutputPath: filepath.Join("out", "clip.webm"), Target: "webm"},
+		mp4Input(1280, 720, true), webmCapabilities(),
 	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
