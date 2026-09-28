@@ -9,8 +9,9 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Adicionado
 
-- Opções `--start` e `--duration` no `convert`, que limitam a conversão a um
-  trecho da entrada. Valem para todos os formatos, não só para prévias em GIF.
+- Opções `--start` e `--duration` no `convert` e no `batch`, que limitam a
+  conversão a um trecho da entrada. Valem para todos os formatos, não só para
+  prévias em GIF, e no lote se aplicam a cada arquivo.
 
 ### Alterado
 

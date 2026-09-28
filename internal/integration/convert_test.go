@@ -3,14 +3,17 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Amad3eu/mediaconv/internal/app"
+	"github.com/Amad3eu/mediaconv/internal/cli"
 )
 
 func TestConvertVP9OpusWebMToMP4(t *testing.T) {
@@ -296,7 +299,8 @@ func TestBatchConvertWAVToMP3(t *testing.T) {
 	generateWAV(t, filepath.Join(inputDir, "first.wav"))
 	generateWAV(t, filepath.Join(inputDir, "second.wav"))
 
-	result, err := app.New(app.Config{}).BatchConvert(context.Background(), app.BatchRequest{
+	service := app.New(app.Config{})
+	result, err := service.BatchConvert(context.Background(), app.BatchRequest{
 		InputDir:  inputDir,
 		OutputDir: outputDir,
 		Target:    "mp3",
@@ -313,6 +317,62 @@ func TestBatchConvertWAVToMP3(t *testing.T) {
 		}
 	}
 	assertNoStagingDirectories(t, directory)
+}
+
+// The batch request carried trim fields that the CLI never filled in, so the
+// capability its comment described did not exist for anyone running the tool.
+// Going through Execute rather than the app API is the point: the gap was the
+// flag wiring, and a test that calls BatchConvert directly walks straight past
+// it.
+func TestBatchCommandAppliesTheRangeToEveryFile(t *testing.T) {
+	requireFFmpeg(t)
+	directory := t.TempDir()
+	inputs := filepath.Join(directory, "clips")
+	outputs := filepath.Join(directory, "previews")
+	if err := os.MkdirAll(inputs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Six seconds, so an untrimmed preview would run the five second default
+	// and a one second range is unmistakably shorter.
+	for _, name := range []string{"one.mov", "two.mov"} {
+		generateMOVOfLength(t, filepath.Join(inputs, name), "6")
+	}
+
+	var stdout, stderr bytes.Buffer
+	code := cli.Execute(
+		context.Background(),
+		[]string{"batch", inputs, "--to", "gif", "--output-dir", outputs, "--duration", "1s"},
+		strings.NewReader(""), &stdout, &stderr,
+	)
+	if code != 0 {
+		t.Fatalf("batch exited %d\nstdout: %s\nstderr: %s", code, stdout.String(), stderr.String())
+	}
+
+	previews, err := filepath.Glob(filepath.Join(outputs, "*.gif"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(previews) != 2 {
+		t.Fatalf("found %d previews, want 2: %v", len(previews), previews)
+	}
+
+	// Every output, not just the first: a range applied once would still make
+	// the summary look right.
+	service := app.New(app.Config{})
+	for _, preview := range previews {
+		info, err := service.Inspect(context.Background(), preview)
+		if err != nil {
+			t.Errorf("inspect %s: %v", preview, err)
+			continue
+		}
+		if info.Duration > 2*time.Second {
+			t.Errorf("%s runs %s, want the one second range", preview, info.Duration)
+		}
+		videos := info.VideoStreams()
+		if len(videos) == 0 || videos[0].CodecName != "gif" {
+			t.Errorf("%s is not a GIF: %+v", preview, videos)
+		}
+	}
 }
 
 func TestTruncatedWebMIsNotPublished(t *testing.T) {
@@ -400,10 +460,17 @@ func generateWebM(t *testing.T, output string, withAudio bool, duration string) 
 
 func generateMOV(t *testing.T, output string) {
 	t.Helper()
+	generateMOVOfLength(t, output, "0.5")
+}
+
+// generateMOVOfLength exists because a trim can only be observed on an input
+// long enough for it to cut something off.
+func generateMOVOfLength(t *testing.T, output, seconds string) {
+	t.Helper()
 	args := []string{
 		"-hide_banner", "-loglevel", "error", "-nostdin", "-y",
 		"-f", "lavfi", "-i", "testsrc2=size=160x90:rate=24",
-		"-t", "0.5",
+		"-t", seconds,
 		"-c:v", "mpeg4",
 		"-q:v", "5",
 		output,

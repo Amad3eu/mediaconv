@@ -148,12 +148,14 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 
 func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 	var (
-		outputDir string
-		target    string
-		preset    string
-		overwrite bool
-		recursive bool
-		jobs      int
+		outputDir    string
+		target       string
+		preset       string
+		overwrite    bool
+		recursive    bool
+		jobs         int
+		trimStart    time.Duration
+		trimDuration time.Duration
 	)
 	command := &cobra.Command{
 		Use:   "batch DIRECTORY",
@@ -164,17 +166,20 @@ func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 			"mediaconv batch ./audio --to mp3 --output-dir ./converted",
 			"mediaconv batch ./media --to mp4 --recursive --overwrite",
 			"mediaconv batch ./recordings --to mp4 --jobs 4",
+			"mediaconv batch ./clips --to gif --start 5s --duration 3s",
 		}, "\n"),
 		RunE: func(command *cobra.Command, args []string) error {
 			service := app.New(app.Config{FFmpegPath: opts.ffmpegPath, FFprobePath: opts.ffprobePath})
 			result, err := service.BatchConvert(command.Context(), app.BatchRequest{
-				InputDir:  args[0],
-				OutputDir: outputDir,
-				Target:    target,
-				Preset:    preset,
-				Overwrite: overwrite,
-				Recursive: recursive,
-				Jobs:      jobs,
+				InputDir:     args[0],
+				OutputDir:    outputDir,
+				Target:       target,
+				Preset:       preset,
+				Overwrite:    overwrite,
+				Recursive:    recursive,
+				Jobs:         jobs,
+				TrimStart:    trimStart,
+				TrimDuration: trimDuration,
 			})
 			if err != nil && result.Total == 0 {
 				return err
@@ -203,6 +208,8 @@ func newBatchCommand(opts *options, stdout io.Writer) *cobra.Command {
 	flags.BoolVar(&overwrite, "overwrite", false, "Replace existing regular output files")
 	flags.BoolVarP(&recursive, "recursive", "r", false, "Scan subdirectories recursively")
 	flags.IntVarP(&jobs, "jobs", "j", 1, "Convert this many files at once")
+	flags.DurationVar(&trimStart, "start", 0, "Start each conversion this far into its input, for example 1m30s")
+	flags.DurationVar(&trimDuration, "duration", 0, "Convert only this much of each input, for example 10s")
 	return command
 }
 
