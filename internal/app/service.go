@@ -73,6 +73,10 @@ type ConvertRequest struct {
 	Target     string
 	Preset     string
 	Overwrite  bool
+	// TrimStart and TrimDuration limit the conversion to part of the input.
+	// Zero means from the beginning, and to the end.
+	TrimStart    time.Duration
+	TrimDuration time.Duration
 }
 
 type ConvertResult struct {
@@ -93,6 +97,9 @@ type BatchRequest struct {
 	Recursive bool
 	// Jobs is how many files to convert at once. Zero means sequential.
 	Jobs int
+	// TrimStart and TrimDuration apply to every file in the batch.
+	TrimStart    time.Duration
+	TrimDuration time.Duration
 }
 
 type BatchItem struct {
@@ -147,7 +154,14 @@ func (s *Service) Convert(ctx context.Context, request ConvertRequest, sink func
 		)
 	}
 
-	plan, err := (profile.Registry{}).Plan(inputPath, outputPath, request.Target, request.Preset, inputInfo, capabilities)
+	plan, err := (profile.Registry{}).Plan(profile.Request{
+		InputPath:    inputPath,
+		OutputPath:   outputPath,
+		Target:       request.Target,
+		Preset:       request.Preset,
+		TrimStart:    request.TrimStart,
+		TrimDuration: request.TrimDuration,
+	}, inputInfo, capabilities)
 	if err != nil {
 		return ConvertResult{}, planFailure(err)
 	}
@@ -320,11 +334,13 @@ func (s *Service) convertBatchItem(ctx context.Context, inputDir, outputDir, inp
 	}
 
 	result, err := s.Convert(ctx, ConvertRequest{
-		InputPath:  inputPath,
-		OutputPath: outputPath,
-		Target:     target,
-		Preset:     request.Preset,
-		Overwrite:  request.Overwrite,
+		InputPath:    inputPath,
+		OutputPath:   outputPath,
+		Target:       target,
+		Preset:       request.Preset,
+		Overwrite:    request.Overwrite,
+		TrimStart:    request.TrimStart,
+		TrimDuration: request.TrimDuration,
 	}, nil)
 	if err != nil {
 		return BatchItem{
@@ -679,6 +695,13 @@ func planFailure(err error) error {
 	switch {
 	case errors.Is(err, profile.ErrMissingCapability):
 		return failure.New(failure.Dependency, "The installed FFmpeg does not provide a required codec or muxer.", "Run 'mediaconv doctor' and install a complete FFmpeg build.", err)
+	case errors.Is(err, profile.ErrInvalidRange):
+		return failure.New(
+			failure.Usage,
+			err.Error(),
+			"Check --start and --duration against the length shown by 'mediaconv inspect'.",
+			err,
+		)
 	case errors.Is(err, profile.ErrUnsupportedTarget), errors.Is(err, profile.ErrUnsupportedPreset):
 		return failure.New(failure.Usage, err.Error(), "Run 'mediaconv formats' to list supported conversions and profiles.", err)
 	default:
