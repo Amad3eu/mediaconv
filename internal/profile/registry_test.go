@@ -76,12 +76,8 @@ func TestRegistryPlanCreatesWebMP4Plan(t *testing.T) {
 	delete(caps.Muxers, "mp4")
 
 	got, err := (Registry{}).Plan(
-		"/media/Input.WEBM",
-		"/media/output.mp4",
-		" MP4 ",
-		" WEB ",
-		info,
-		caps,
+		Request{InputPath: "/media/Input.WEBM", OutputPath: "/media/output.mp4", Target: " MP4 ", Preset: " WEB "},
+		info, caps,
 	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
@@ -131,7 +127,10 @@ func TestRegistryPlanPadsOddDimensionsAndOmitsAudio(t *testing.T) {
 	info.Streams[0].Width = 1279
 	info.Streams[0].Height = 719
 
-	got, err := (Registry{}).Plan("clip.webm", "clip.mp4", "mp4", "web", info, supportedCapabilities())
+	got, err := (Registry{}).Plan(
+		Request{InputPath: "clip.webm", OutputPath: "clip.mp4", Target: "mp4", Preset: "web"},
+		info, supportedCapabilities(),
+	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
 	}
@@ -149,7 +148,10 @@ func TestRegistryPlanCreatesMusicMP3Plan(t *testing.T) {
 
 	info := supportedAudioInputInfo()
 	info.Duration = 2*time.Minute + 3*time.Second
-	got, err := (Registry{}).Plan("song.wav", "song.mp3", " mp3 ", "", info, supportedCapabilities())
+	got, err := (Registry{}).Plan(
+		Request{InputPath: "song.wav", OutputPath: "song.mp3", Target: " mp3 "},
+		info, supportedCapabilities(),
+	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
 	}
@@ -198,7 +200,10 @@ func TestRegistryPlanSupportsCommonAudioContainers(t *testing.T) {
 			info := supportedAudioInputInfo()
 			info.FormatNames = test.formats
 
-			got, err := (Registry{}).Plan(test.inputPath, "song-output.mp3", "mp3", "music", info, supportedCapabilities())
+			got, err := (Registry{}).Plan(
+				Request{InputPath: test.inputPath, OutputPath: "song-output.mp3", Target: "mp3", Preset: "music"},
+				info, supportedCapabilities(),
+			)
 			if err != nil {
 				t.Fatalf("Plan() error = %v", err)
 			}
@@ -231,7 +236,10 @@ func TestRegistryPlanSupportsCommonVideoContainers(t *testing.T) {
 			info := supportedInputInfo()
 			info.FormatNames = test.formats
 
-			got, err := (Registry{}).Plan(test.inputPath, "clip-output.mp4", "mp4", "web", info, supportedCapabilities())
+			got, err := (Registry{}).Plan(
+				Request{InputPath: test.inputPath, OutputPath: "clip-output.mp4", Target: "mp4", Preset: "web"},
+				info, supportedCapabilities(),
+			)
 			if err != nil {
 				t.Fatalf("Plan() error = %v", err)
 			}
@@ -256,7 +264,10 @@ func TestRegistryPlanReportsLossAndSelectionWarnings(t *testing.T) {
 	)
 	info.ChapterCount = 2
 
-	got, err := (Registry{}).Plan("clip.bin", "clip.mp4", "mp4", "web", info, supportedCapabilities())
+	got, err := (Registry{}).Plan(
+		Request{InputPath: "clip.bin", OutputPath: "clip.mp4", Target: "mp4", Preset: "web"},
+		info, supportedCapabilities(),
+	)
 	if err != nil {
 		t.Fatalf("Plan() error = %v", err)
 	}
@@ -358,7 +369,10 @@ func TestRegistryPlanRejectsUnsupportedInputsAndMissingCapabilities(t *testing.T
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := (Registry{}).Plan("input", "output", test.target, test.preset, test.info, test.caps)
+			_, err := (Registry{}).Plan(
+				Request{InputPath: "input", OutputPath: "output", Target: test.target, Preset: test.preset},
+				test.info, test.caps,
+			)
 			if !errors.Is(err, test.wantErr) {
 				t.Fatalf("Plan() error = %v, want errors.Is(..., %v)", err, test.wantErr)
 			}

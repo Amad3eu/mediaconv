@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -97,11 +98,13 @@ func newRootCommand(opts *options, stdin io.Reader, stdout, stderr io.Writer) *c
 
 func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 	var (
-		outputPath string
-		target     string
-		preset     string
-		overwrite  bool
-		noProgress bool
+		outputPath   string
+		target       string
+		preset       string
+		overwrite    bool
+		noProgress   bool
+		trimStart    time.Duration
+		trimDuration time.Duration
 	)
 	command := &cobra.Command{
 		Use:   "convert INPUT",
@@ -117,11 +120,13 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 			progress := newProgressWriter(stderr, !noProgress && !opts.json)
 			defer progress.Clear()
 			result, err := service.Convert(command.Context(), app.ConvertRequest{
-				InputPath:  args[0],
-				OutputPath: outputPath,
-				Target:     target,
-				Preset:     preset,
-				Overwrite:  overwrite,
+				InputPath:    args[0],
+				OutputPath:   outputPath,
+				Target:       target,
+				Preset:       preset,
+				Overwrite:    overwrite,
+				TrimStart:    trimStart,
+				TrimDuration: trimDuration,
 			}, progress.Update)
 			if err != nil {
 				return err
@@ -136,6 +141,8 @@ func newConvertCommand(opts *options, stdout, stderr io.Writer) *cobra.Command {
 	flags.StringVar(&preset, "preset", "", presetFlagUsage())
 	flags.BoolVar(&overwrite, "overwrite", false, "Replace an existing regular output file")
 	flags.BoolVar(&noProgress, "no-progress", false, "Disable interactive progress output")
+	flags.DurationVar(&trimStart, "start", 0, "Start the conversion this far into the input, for example 1m30s")
+	flags.DurationVar(&trimDuration, "duration", 0, "Convert only this much of the input, for example 10s")
 	return command
 }
 

@@ -210,7 +210,7 @@ O desenvolvimento exige Go 1.26 ou mais recente.
 ## Comandos
 
 ```text
-mediaconv convert INPUT [--to mp4|webm|gif|mp3|m4a|wav] [-o SAÍDA] [--preset web|stream|preview|music|aac|master] [--overwrite]
+mediaconv convert INPUT [--to mp4|webm|gif|mp3|m4a|wav] [--start D] [--duration D] [-o SAÍDA] [--preset web|stream|preview|music|aac|master] [--overwrite]
 mediaconv batch DIRETÓRIO [--to mp4|webm|gif|mp3|m4a|wav] [-o DIRETÓRIO_SAÍDA] [--recursive] [--overwrite] [-j JOBS]
 mediaconv inspect INPUT
 mediaconv doctor
@@ -257,6 +257,16 @@ O FFmpeg já usa várias threads por conversão, então a faixa útil é menor q
 quantidade de núcleos: o ganho costuma estabilizar com poucos jobs e, além
 disso, as conversões apenas disputam os mesmos núcleos. Comece por volta de
 quatro e meça. O valor é limitado à quantidade de arquivos encontrados.
+
+### Recorte
+
+`--start` e `--duration` limitam a conversão a um trecho da entrada, e valem
+para todos os formatos, não só para prévias. Ambos aceitam uma duração no
+formato do Go: `8s`, `1m30s`, `2h`. A busca acontece antes da decodificação,
+então começar no meio de um arquivo longo é rápido.
+
+Um intervalo impossível, como um deslocamento além do fim da entrada, é
+recusado antes de qualquer trabalho, com código de saída 2.
 
 ### Cores
 

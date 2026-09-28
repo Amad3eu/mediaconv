@@ -16,9 +16,25 @@ var (
 	ErrUnsupportedInput  = errors.New("unsupported input")
 	ErrMissingCapability = errors.New("required FFmpeg capability is missing")
 	ErrUnsupportedPreset = errors.New("unsupported preset")
+	ErrInvalidRange      = errors.New("invalid range")
 )
 
 type Registry struct{}
+
+// Request is what the caller is asking for. It is a struct rather than a list
+// of parameters because the trim fields are optional and a positional empty
+// string tells the reader nothing about which knob it is.
+type Request struct {
+	InputPath  string
+	OutputPath string
+	Target     string
+	Preset     string
+	// TrimStart and TrimDuration limit the conversion to part of the input.
+	// Zero means from the beginning, and to the end. A profile may supply its
+	// own default duration, which these override when set.
+	TrimStart    time.Duration
+	TrimDuration time.Duration
+}
 
 // Target is an output format the registry can plan for. It is the single
 // source of truth: internal/app asks here instead of keeping its own copy of
@@ -176,9 +192,21 @@ func (Registry) Formats() []SupportedFormat {
 	return formats
 }
 
-func (Registry) Plan(inputPath, outputPath, target, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
-	target = strings.ToLower(strings.TrimSpace(target))
-	preset = strings.ToLower(strings.TrimSpace(preset))
+func (Registry) Plan(request Request, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	if request.TrimStart < 0 || request.TrimDuration < 0 {
+		return media.Plan{}, fmt.Errorf("%w: a negative offset or length is not a range", ErrInvalidRange)
+	}
+	if info.Duration > 0 && request.TrimStart >= info.Duration {
+		return media.Plan{}, fmt.Errorf(
+			"%w: the start offset %s is at or past the end of a %s input",
+			ErrInvalidRange,
+			request.TrimStart.Round(time.Millisecond),
+			info.Duration.Round(time.Millisecond),
+		)
+	}
+
+	target := strings.ToLower(strings.TrimSpace(request.Target))
+	preset := strings.ToLower(strings.TrimSpace(request.Preset))
 	if target == "" {
 		target = "mp4"
 	}
@@ -187,23 +215,24 @@ func (Registry) Plan(inputPath, outputPath, target, preset string, info media.In
 	}
 	switch target {
 	case "mp4":
-		return planWebMP4(inputPath, outputPath, preset, info, capabilities)
+		return planWebMP4(request, preset, info, capabilities)
 	case "webm":
-		return planStreamWebM(inputPath, outputPath, preset, info, capabilities)
+		return planStreamWebM(request, preset, info, capabilities)
 	case "mp3":
-		return planMusicMP3(inputPath, outputPath, preset, info, capabilities)
+		return planMusicMP3(request, preset, info, capabilities)
 	case "m4a":
-		return planAacM4A(inputPath, outputPath, preset, info, capabilities)
+		return planAacM4A(request, preset, info, capabilities)
 	case "wav":
-		return planMasterWAV(inputPath, outputPath, preset, info, capabilities)
+		return planMasterWAV(request, preset, info, capabilities)
 	case "gif":
-		return planPreviewGIF(inputPath, outputPath, preset, info, capabilities)
+		return planPreviewGIF(request, preset, info, capabilities)
 	default:
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedTarget, target)
 	}
 }
 
-func planWebMP4(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+func planWebMP4(request Request, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	inputPath, outputPath := request.InputPath, request.OutputPath
 	if preset != "web" {
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
 	}
@@ -285,10 +314,12 @@ func planWebMP4(inputPath, outputPath, preset string, info media.Info, capabilit
 		plan.AudioMap = "0:a:0"
 		plan.Audio = &media.AudioSettings{Codec: "aac", BitRate: "192k"}
 	}
+	applyTrim(&plan, request)
 	return plan, nil
 }
 
-func planMusicMP3(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+func planMusicMP3(request Request, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	inputPath, outputPath := request.InputPath, request.OutputPath
 	if preset != "music" {
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
 	}
@@ -329,7 +360,7 @@ func planMusicMP3(inputPath, outputPath, preset string, info media.Info, capabil
 		warnings = append(warnings, fmt.Sprintf("The input is detected as %s even though its file extension is %s.", strings.ToUpper(sourceFormat), strings.ToLower(filepath.Ext(inputPath))))
 	}
 
-	return media.Plan{
+	plan := media.Plan{
 		InputPath:     inputPath,
 		OutputPath:    outputPath,
 		SourceFormat:  sourceFormat,
@@ -341,7 +372,9 @@ func planMusicMP3(inputPath, outputPath, preset string, info media.Info, capabil
 		DropChapters:  true,
 		Warnings:      warnings,
 		InputDuration: info.Duration,
-	}, nil
+	}
+	applyTrim(&plan, request)
+	return plan, nil
 }
 
 // planStreamWebM converts video to VP9 with Opus audio in a WebM container.
@@ -351,7 +384,8 @@ func planMusicMP3(inputPath, outputPath, preset string, info media.Info, capabil
 // share a scale. The deadline is "good" rather than "best": "best" costs
 // several times the encode time for a difference most viewers cannot see, and
 // this tool converts whole folders.
-func planStreamWebM(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+func planStreamWebM(request Request, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	inputPath, outputPath := request.InputPath, request.OutputPath
 	if preset != "stream" {
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
 	}
@@ -429,6 +463,7 @@ func planStreamWebM(inputPath, outputPath, preset string, info media.Info, capab
 		plan.AudioMap = "0:a:0"
 		plan.Audio = &media.AudioSettings{Codec: "libopus", BitRate: "128k"}
 	}
+	applyTrim(&plan, request)
 	return plan, nil
 }
 
@@ -457,14 +492,34 @@ func verifyWebM(plan media.Plan, info media.Info) error {
 	return nil
 }
 
+// applyTrim copies the requested range onto a plan. Trimming is not specific
+// to any one target: cutting thirty seconds out of a long recording is as
+// useful for MP4 as it is for a preview.
+func applyTrim(plan *media.Plan, request Request) {
+	plan.TrimStart = request.TrimStart
+	if request.TrimDuration > 0 {
+		plan.TrimDuration = request.TrimDuration
+	}
+}
+
+// remainingAfter is how much of the input is left once the start offset is
+// taken out, or zero when the length is unknown.
+func remainingAfter(info media.Info, start time.Duration) time.Duration {
+	if info.Duration <= 0 {
+		return 0
+	}
+	return info.Duration - start
+}
+
 // planAudioOnly is the shape the audio profiles share: one stream in, one
 // stream out, everything else dropped, with the codec and container decided by
 // the caller.
 func planAudioOnly(
-	inputPath, outputPath, target, profileName string,
+	request Request, target, profileName string,
 	audio media.AudioSettings, muxer string,
 	info media.Info,
 ) (media.Plan, error) {
+	inputPath, outputPath := request.InputPath, request.OutputPath
 	sourceFormat, ok := supportedAudioSource(inputPath, info.FormatNames)
 	if !ok {
 		return media.Plan{}, fmt.Errorf(
@@ -495,7 +550,7 @@ func planAudioOnly(
 		warnings = append(warnings, fmt.Sprintf("The input is detected as %s even though its file extension is %s.", strings.ToUpper(sourceFormat), strings.ToLower(filepath.Ext(inputPath))))
 	}
 
-	return media.Plan{
+	plan := media.Plan{
 		InputPath:     inputPath,
 		OutputPath:    outputPath,
 		SourceFormat:  sourceFormat,
@@ -508,13 +563,15 @@ func planAudioOnly(
 		DropChapters:  true,
 		Warnings:      warnings,
 		InputDuration: info.Duration,
-	}, nil
+	}
+	applyTrim(&plan, request)
+	return plan, nil
 }
 
 // planAacM4A writes AAC into an M4A container. FFmpeg has no muxer named m4a;
 // the container is written with ipod, which is why the plan carries the muxer
 // name separately from the extension the user asked for.
-func planAacM4A(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+func planAacM4A(request Request, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
 	if preset != "aac" {
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
 	}
@@ -525,7 +582,7 @@ func planAacM4A(inputPath, outputPath, preset string, info media.Info, capabilit
 		return media.Plan{}, fmt.Errorf("%w: M4A muxer", ErrMissingCapability)
 	}
 	return planAudioOnly(
-		inputPath, outputPath, "m4a", "aac",
+		request, "m4a", "aac",
 		media.AudioSettings{Codec: "aac", BitRate: "192k"},
 		"ipod", info,
 	)
@@ -534,7 +591,7 @@ func planAacM4A(inputPath, outputPath, preset string, info media.Info, capabilit
 // planMasterWAV writes uncompressed PCM. There is no bitrate to choose: the
 // sample format fixes it, so the plan leaves it empty and the adapter omits
 // -b:a rather than passing a value PCM would ignore.
-func planMasterWAV(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+func planMasterWAV(request Request, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
 	if preset != "master" {
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
 	}
@@ -545,7 +602,7 @@ func planMasterWAV(inputPath, outputPath, preset string, info media.Info, capabi
 		return media.Plan{}, fmt.Errorf("%w: WAV muxer", ErrMissingCapability)
 	}
 	return planAudioOnly(
-		inputPath, outputPath, "wav", "master",
+		request, "wav", "master",
 		media.AudioSettings{Codec: "pcm_s16le"},
 		"", info,
 	)
@@ -586,7 +643,8 @@ const (
 // pass: split the stream, let palettegen read one branch and paletteuse apply
 // it to the other. The two-pass form with an intermediate palette file gives a
 // byte-identical result here, so the simpler graph is the one worth carrying.
-func planPreviewGIF(inputPath, outputPath, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+func planPreviewGIF(request Request, preset string, info media.Info, capabilities media.Capabilities) (media.Plan, error) {
+	inputPath, outputPath := request.InputPath, request.OutputPath
 	if preset != "preview" {
 		return media.Plan{}, fmt.Errorf("%w: %q", ErrUnsupportedPreset, preset)
 	}
@@ -610,20 +668,29 @@ func planPreviewGIF(inputPath, outputPath, preset string, info media.Info, capab
 		return media.Plan{}, fmt.Errorf("%w: GIF muxer", ErrMissingCapability)
 	}
 
+	// The preview has a length of its own, which an explicit --duration
+	// replaces. Either way it cannot outrun what is left after the offset.
 	trim := previewDuration
-	if info.Duration > 0 && info.Duration < trim {
-		trim = info.Duration
+	if request.TrimDuration > 0 {
+		trim = request.TrimDuration
+	}
+	if remaining := remainingAfter(info, request.TrimStart); remaining > 0 && remaining < trim {
+		trim = remaining
 	}
 
+	position := "the first"
+	if request.TrimStart > 0 {
+		position = fmt.Sprintf("%s in,", request.TrimStart.Round(time.Millisecond))
+	}
 	warnings := []string{
-		fmt.Sprintf("The preview is the first %s of the input, at %d pixels wide and %d frames per second.",
-			trim.Round(time.Second), previewWidth, previewFPS),
+		fmt.Sprintf("The preview is %s %s of the input, at %d pixels wide and %d frames per second.",
+			position, trim.Round(time.Second), previewWidth, previewFPS),
 	}
 	if len(info.AudioStreams()) > 0 {
 		warnings = append(warnings, "GIF has no audio; the sound is not included.")
 	}
-	if info.Duration > trim {
-		warnings = append(warnings, "Only the beginning of the input becomes the preview.")
+	if info.Duration > trim+request.TrimStart {
+		warnings = append(warnings, "Only part of the input becomes the preview.")
 	}
 	if inputExtensionDoesNotMatchSource(inputPath, sourceFormat) {
 		warnings = append(warnings, fmt.Sprintf("The input is detected as %s even though its file extension is %s.", strings.ToUpper(sourceFormat), strings.ToLower(filepath.Ext(inputPath))))
@@ -645,6 +712,7 @@ func planPreviewGIF(inputPath, outputPath, preset string, info media.Info, capab
 				previewFPS, previewWidth,
 			)},
 		},
+		TrimStart:     request.TrimStart,
 		TrimDuration:  trim,
 		Warnings:      warnings,
 		InputDuration: info.Duration,
