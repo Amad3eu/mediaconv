@@ -17,7 +17,7 @@ Set FontSize 16
 Set Width 1280
 # Tall enough for the whole session to stay on screen at the end, so the last
 # frame doubles as a summary. Raise this if the commands below grow.
-Set Height 520
+Set Height 640
 Set Padding 24
 Set BorderRadius 10
 Set TypingSpeed 55ms
