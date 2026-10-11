@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <!--
+      Fonte do card publicado em site/card-verificacao-v070.png.
+      Regenerado com um navegador headless em 1200x556; veja o README ao lado
+      para o comando e para a procedência do que o card afirma.
+
+      Os tokens abaixo são os mesmos de docs/benchmark/v060.html, que por sua
+      vez são os de site/styles.css. Veja docs/BRAND.md.
+    -->
+    <meta charset="utf-8">
+    <style>
+      :root {
+        --surface: #0b1220;
+        --ink: #e5f7f3;
+        --muted: #93a4b8;
+        --teal: #0d9488;
+        --baseline: #475569;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 556px;
+        padding: 56px 72px 44px;
+        background: var(--surface);
+        color: var(--ink);
+        font-family: "DejaVu Sans", system-ui, sans-serif;
+        display: flex;
+        flex-direction: column;
+      }
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--teal);
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h1 { margin: 0 0 6px; font-size: 42px; line-height: 1.12; letter-spacing: -0.01em; }
+      .sub { margin: 0 0 44px; color: var(--muted); font-size: 19px; }
+
+      .rows { display: flex; flex-direction: column; gap: 24px; }
+      /* Same two-column grid as the benchmark chart: a right-aligned label
+         column, then the data. Here the data is the string itself. */
+      .row { display: grid; grid-template-columns: 340px 1fr; align-items: center; gap: 22px; }
+      .label { text-align: right; }
+      .label b { display: block; font-size: 19px; font-weight: 600; }
+      .label span { display: block; margin-top: 3px; color: var(--muted); font-size: 15px; }
+
+      .code {
+        font-family: "DejaVu Sans Mono", ui-monospace, monospace;
+        font-size: 30px;
+        font-weight: 700;
+        padding: 14px 22px;
+        border-radius: 8px;
+        justify-self: start;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      /* Teal is what the test demanded; the gray is what broken code produced,
+         matching the baseline bar in the benchmark chart. */
+      .wanted { color: var(--teal); border-color: rgba(13, 148, 136, 0.45); }
+      .got { color: var(--muted); }
+
+      .note {
+        margin: 34px 0 0;
+        font-size: 20px;
+        color: var(--ink);
+      }
+      .note span { color: var(--muted); }
+
+      .foot {
+        margin-top: auto;
+        padding-top: 22px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        color: var(--muted);
+        font-size: 16px;
+      }
+      .foot strong { color: var(--ink); font-size: 18px; }
+    </style>
+  </head>
+  <body>
+    <p class="eyebrow">MediaConv v0.7.0</p>
+    <h1>O teste passou. O código estava quebrado.</h1>
+    <p class="sub">A asserção procurava um texto que o código quebrado nunca imprimiria</p>
+
+    <div class="rows">
+      <div class="row">
+        <div class="label">
+          <b>A asserção procurava</b>
+          <span>na linha do stream de vídeo</span>
+        </div>
+        <div class="code wanted">"2 channel(s)"</div>
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <b>O código quebrado imprimia</b>
+          <span>na mesma linha</span>
+        </div>
+        <div class="code got">"0 channel(s)"</div>
+      </div>
+    </div>
+
+    <p class="note">
+      Diferente o bastante para não bater.
+      <span>Parecido o bastante para eu não notar lendo.</span>
+    </p>
+
+    <div class="foot">
+      <span><strong>Um teste que passa contra código quebrado</strong> é pior que nenhum teste.</span>
+      <span>github.com/Amad3eu/mediaconv</span>
+    </div>
+  </body>
+</html>
