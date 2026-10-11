@@ -110,12 +110,16 @@ func TestBatchJSONKeepsItsContract(t *testing.T) {
 	}
 
 	decoded := decodeObject(t, buffer.Bytes())
-	// "jobs" is deliberately absent: writeBatchResult builds this object by
-	// hand and never included it, although app.BatchResult carries the tag.
-	// Pinned here so that adding it becomes a visible, documented change.
 	assertKeys(t, "batch", decoded,
 		"ok", "input_dir", "output_dir", "target", "preset", "recursive",
-		"total", "converted", "failed", "elapsed_seconds", "items")
+		"jobs", "total", "converted", "failed", "elapsed_seconds", "items")
+
+	// normalizeJobs caps the requested value at the number of files, so the
+	// worker count that ran can differ from the one the user asked for.
+	// Without this key the output gives no way to tell which it was.
+	if decoded["jobs"] != float64(4) {
+		t.Errorf("jobs = %v, want the 4 workers the batch ran with", decoded["jobs"])
+	}
 }
 
 // ok mirrors the failure count, not the fact that the command ran. A script
@@ -178,12 +182,10 @@ func TestMediaInfoJSONKeepsItsContract(t *testing.T) {
 	if !ok {
 		t.Fatalf("stream = %T, want an object", streams[0])
 	}
-	// "color_transfer" is absent for the same reason "jobs" is: mediaInfoView
-	// builds the object by hand and media.Stream's tag never reaches it.
 	assertKeys(t, "stream", stream,
 		"index", "codec_type", "codec_name", "codec_long_name", "profile",
 		"pixel_format", "width", "height", "channels", "channel_layout",
-		"sample_rate", "duration_seconds", "tags")
+		"sample_rate", "color_transfer", "duration_seconds", "tags")
 }
 
 func TestConvertTextWritesEveryWarning(t *testing.T) {
@@ -383,5 +385,36 @@ func TestRenderersReportWriteFailures(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// color_transfer is the field behind the HDR warning that convert emits.
+// Someone who gets that warning and runs `info --json` to understand it has to
+// find the value that caused it.
+func TestMediaInfoJSONCarriesTheFieldBehindTheHDRWarning(t *testing.T) {
+	t.Parallel()
+
+	var buffer bytes.Buffer
+	info := media.Info{Streams: []media.Stream{
+		{Index: 0, CodecType: "video", CodecName: "hevc", ColorTransfer: "smpte2084"},
+	}}
+	if err := writeMediaInfo(&buffer, info, true); err != nil {
+		t.Fatalf("writeMediaInfo() error = %v", err)
+	}
+
+	object, ok := decodeObject(t, buffer.Bytes())["media"].(map[string]any)
+	if !ok {
+		t.Fatal("media is not an object")
+	}
+	streams, ok := object["streams"].([]any)
+	if !ok || len(streams) != 1 {
+		t.Fatalf("streams = %v, want one entry", object["streams"])
+	}
+	stream, ok := streams[0].(map[string]any)
+	if !ok {
+		t.Fatalf("stream = %T, want an object", streams[0])
+	}
+	if stream["color_transfer"] != "smpte2084" {
+		t.Errorf("color_transfer = %v, want the transfer that makes isHDR true", stream["color_transfer"])
 	}
 }

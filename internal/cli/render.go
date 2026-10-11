@@ -44,6 +44,7 @@ func writeBatchResult(writer io.Writer, result app.BatchResult, asJSON bool, pal
 			"target":          result.Target,
 			"preset":          result.Preset,
 			"recursive":       result.Recursive,
+			"jobs":            result.Jobs,
 			"total":           result.Total,
 			"converted":       result.Converted,
 			"failed":          result.Failed,
@@ -182,6 +183,7 @@ func mediaInfoView(info media.Info) map[string]any {
 			"channels":         stream.Channels,
 			"channel_layout":   stream.ChannelLayout,
 			"sample_rate":      stream.SampleRate,
+			"color_transfer":   stream.ColorTransfer,
 			"duration_seconds": seconds(stream.Duration),
 			"tags":             stream.Tags,
 		})
