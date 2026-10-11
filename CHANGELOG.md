@@ -9,6 +9,11 @@ projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ### Adicionado
 
+- Chaves `jobs` na saída `--json` do `batch` e `color_transfer` na do `info`.
+  A primeira informa quantos workers de fato rodaram, que pode ser menos do que
+  o pedido, porque o valor é limitado ao número de arquivos. A segunda é o campo
+  que dispara o aviso de HDR na conversão, e sem ela não havia como inspecionar
+  o que causou o aviso.
 - Opções `--start` e `--duration` no `convert` e no `batch`, que limitam a
   conversão a um trecho da entrada. Valem para todos os formatos, não só para
   prévias em GIF, e no lote se aplicam a cada arquivo.
