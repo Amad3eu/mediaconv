@@ -33,6 +33,14 @@ O `wordmark.png` tem o texto em `#172026` sobre fundo transparente, então ele
 **some em fundo escuro**. Em contexto que possa ser claro ou escuro, use o
 `banner.png`, que carrega o próprio fundo.
 
+## Card de arquitetura
+
+[`site/architecture-v070.png`](../site/architecture-v070.png) resume o projeto
+em uma imagem e aparece no [`README.pt-BR.md`](../README.pt-BR.md). Ele afirma
+fatos que mudam — versão, perfis, matriz de CI — então o prompt que o gera e a
+lista do que o torna falso ficam em
+[`architecture-card.md`](architecture-card.md).
+
 ## Social preview do repositório
 
 O banner tem exatamente a proporção 2:1 que o GitHub espera. Ele não pode ser

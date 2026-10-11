@@ -21,9 +21,10 @@ broadly compatible MP4 using H.264 video and AAC audio. MediaConv validates the
 input, converts into a private staging directory, verifies the result, and only
 then publishes the output.
 
-It also includes a `stream` profile for converting video to royalty-free WebM
-with VP9 and Opus, and a `music` profile for converting common audio files to
-portable MP3 using libmp3lame.
+It also covers five more profiles: `stream` for royalty-free WebM with VP9 and
+Opus, `music` for portable MP3 with libmp3lame, `aac` for AAC audio in an M4A
+container, `master` for uncompressed PCM, and `preview` for a short looping GIF
+with a palette computed from the clip itself.
 
 > [!NOTE]
 > MediaConv is in early development. Until v1.0, commands and flags may change
