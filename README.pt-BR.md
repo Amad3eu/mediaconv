@@ -21,9 +21,18 @@ MP4 amplamente compatível, usando vídeo H.264 e áudio AAC. O MediaConv valida
 entrada, converte em uma área temporária privada, verifica o resultado e somente
 então publica a saída.
 
-Ele também inclui o perfil `stream`, para converter vídeo em WebM livre de
-royalties com VP9 e Opus, e o perfil `music`, para converter arquivos de áudio
-comuns para MP3 portátil usando libmp3lame.
+Ele também cobre mais cinco perfis: `stream`, para WebM livre de royalties com
+VP9 e Opus; `music`, para MP3 portátil com libmp3lame; `aac`, para áudio AAC em
+container M4A; `master`, para PCM sem compressão; e `preview`, para uma prévia
+curta em GIF com paleta calculada a partir do próprio clipe.
+
+![Visão geral do MediaConv. A pipeline vai de CLI, validação, ffprobe, perfil,
+plano, FFmpeg, ffprobe e verificação até a publicação, com a verificação
+destacada; o destino final só recebe o arquivo depois de verificado. Abaixo, os
+seis perfis com seus codecs, o núcleo em Go com Cobra, os testes unitários, de
+integração e estáticos, a matriz de CI, a cadeia de suprimento com GoReleaser,
+Sigstore e proveniência, e os canais de
+distribuição.](site/architecture-v070.png)
 
 > [!NOTE]
 > O MediaConv está em desenvolvimento inicial. Até a v1.0, comandos e opções
